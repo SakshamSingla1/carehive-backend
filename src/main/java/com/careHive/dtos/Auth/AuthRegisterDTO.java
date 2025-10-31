@@ -10,6 +10,6 @@ public class AuthRegisterDTO {
     private String username;
     private String email;
     private String password;
-    private String roleId;
+    private String roleCode;
     private String phoneNumber;
 }

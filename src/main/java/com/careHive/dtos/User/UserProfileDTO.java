@@ -19,7 +19,7 @@ public class UserProfileDTO {
     private String phoneNumber;
     private String username;
 
-    private String roleId;
+    private String roleCode;
     private String roleName;
 
     private boolean isVerified;

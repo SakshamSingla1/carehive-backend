@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface RoleRepository extends MongoRepository<Role, String> {
     Optional<Role> findByName(String name);
+
+    Optional<Role> findByEnumCode(String roleCode);
 }

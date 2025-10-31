@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same phone number already exists");
         }
 
-        Role role = roleRepository.findById(registerDTO.getRoleId())
+        Role role = roleRepository.findByEnumCode(registerDTO.getRoleCode())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
         User user = User.builder()
@@ -58,7 +58,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(registerDTO.getUsername())
                 .email(registerDTO.getEmail())
                 .password(passwordEncoder.encode(registerDTO.getPassword()))
-                .roleId(registerDTO.getRoleId())
+                .roleCode(registerDTO.getRoleCode())
                 .phoneNumber(registerDTO.getPhoneNumber())
                 .isVerified(false)
                 .createdAt(LocalDateTime.now())
@@ -250,7 +250,7 @@ public class AuthServiceImpl implements AuthService {
 
         String token = jwtUtil.generateAccessToken(user.getEmail());
 
-        Role role = roleRepository.findById(user.getRoleId())
+        Role role = roleRepository.findByEnumCode(user.getRoleCode())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
         return LoginResponseDTO.builder()
@@ -292,7 +292,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        Role role = roleRepository.findById(user.getRoleId())
+        Role role = roleRepository.findByEnumCode(user.getRoleCode())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
         return UserProfileDTO.builder()
@@ -300,7 +300,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
-                .roleId(user.getRoleId())
+                .roleCode(user.getRoleCode())
                 .roleName(role.getName())
                 .username(user.getUsername())
                 .isVerified(user.isVerified())
