@@ -1,6 +1,6 @@
 package com.careHive.entities;
 
-import com.careHive.enums.RoleEnum;
+import com.careHive.enums.BookingStatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,20 +11,20 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-@Document(collection = "users")
-public class User {
+@Document(collection = "bookings")
+public class Booking {
     @Id
     private String id;
-    private String name;
-    private String username;
-    private String email;
-    private String password;
-    private String roleCode;
-    private String phoneNumber;
-    private boolean isVerified;
+    private String serviceId;
+    private String elderId;
+    private String caretakerId;
+
+    private LocalDateTime bookingTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private BookingStatusEnum status;
 }
