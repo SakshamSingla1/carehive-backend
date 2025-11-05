@@ -11,4 +11,6 @@ public interface PaymentService {
     PaymentResponseDTO verifyPayment(String paymentId, String transactionId, boolean success) throws CarehiveException;
     PaymentResponseDTO getPayment(String paymentId) throws CarehiveException;
     List<PaymentResponseDTO> getPaymentsByUser(String userId);
+    List<PaymentResponseDTO> getPaymentsByCaretaker(String caretakerId);
+
 }
