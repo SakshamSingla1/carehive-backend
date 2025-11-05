@@ -17,6 +17,6 @@ public class Services {
     private String id;
     private String name;
     private String description;
-    private Double pricePerHour;
+    private double pricePerHour;
     private Boolean isActive;
 }

@@ -18,9 +18,11 @@ public class BookingResponseDTO {
     private String caretakerId;
     private String caretakerName;
 
-    private LocalDateTime bookingTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     private BookingStatusEnum status;
+    private double durationHours;
 }

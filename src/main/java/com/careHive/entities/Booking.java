@@ -22,9 +22,11 @@ public class Booking {
     private String elderId;
     private String caretakerId;
 
-    private LocalDateTime bookingTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private double durationHours;
     private BookingStatusEnum status;
 }
