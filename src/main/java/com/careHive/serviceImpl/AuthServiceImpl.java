@@ -6,16 +6,12 @@ import com.careHive.dtos.Password.ChangePasswordDTO;
 import com.careHive.dtos.Password.PasswordResetConfirmDTO;
 import com.careHive.dtos.Password.PasswordResetRequestDTO;
 import com.careHive.dtos.User.UserProfileDTO;
-import com.careHive.entities.OtpStore;
-import com.careHive.entities.PasswordResetToken;
-import com.careHive.entities.Role;
-import com.careHive.entities.User;
+import com.careHive.entities.*;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
+import com.careHive.enums.VerificationStatusEnum;
 import com.careHive.exceptions.CarehiveException;
-import com.careHive.repositories.OtpRepository;
-import com.careHive.repositories.PasswordResetTokenRepository;
-import com.careHive.repositories.RoleRepository;
-import com.careHive.repositories.UserRepository;
+import com.careHive.repositories.*;
 import com.careHive.security.JwtUtil;
 import com.careHive.services.AuthService;
 import com.careHive.services.EmailService;
@@ -23,10 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +34,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
+    private final ServiceRepository serviceRepository;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -61,12 +57,12 @@ public class AuthServiceImpl implements AuthService {
                 .roleCode(registerDTO.getRoleCode())
                 .phoneNumber(registerDTO.getPhoneNumber())
                 .isVerified(false)
+                .caretakerStatus(VerificationStatusEnum.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
         userRepository.save(user);
 
-        // 🔹 Generate and send OTP
         String otp = generateOtp();
         otpRepository.deleteByEmail(user.getEmail());
         otpRepository.save(OtpStore.builder()
@@ -295,6 +291,14 @@ public class AuthServiceImpl implements AuthService {
         Role role = roleRepository.findByEnumCode(user.getRoleCode())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
+        // Fetch associated services safely
+        List<Services> services = user.getServiceIds() == null ?
+                Collections.emptyList() :
+                user.getServiceIds().stream()
+                        .map(id -> serviceRepository.findById(id).orElse(null))
+                        .filter(Objects::nonNull)
+                        .toList();
+
         return UserProfileDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -304,6 +308,9 @@ public class AuthServiceImpl implements AuthService {
                 .roleName(role.getName())
                 .username(user.getUsername())
                 .isVerified(user.isVerified())
+                .documents(user.getDocuments())
+                .services(services)
+                .caretakerStatus(user.getCaretakerStatus())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

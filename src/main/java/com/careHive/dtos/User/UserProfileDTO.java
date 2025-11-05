@@ -1,29 +1,28 @@
 package com.careHive.dtos.User;
 
-import lombok.AllArgsConstructor;
+import com.careHive.entities.DocumentInfo;
+import com.careHive.entities.Services;
+import com.careHive.enums.VerificationStatusEnum;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserProfileDTO {
-
     private String id;
     private String name;
-    private String email;
-    private String phoneNumber;
     private String username;
-
+    private String email;
     private String roleCode;
     private String roleName;
-
+    private String phoneNumber;
     private boolean isVerified;
-
+    private List<Services> services;
+    private VerificationStatusEnum caretakerStatus;
+    private List<DocumentInfo> documents;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

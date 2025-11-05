@@ -12,4 +12,5 @@ public interface ServiceService {
     String deleteService(String id) throws CarehiveException;
     ServiceResponseDTO getService(String id) throws CarehiveException;
     List<ServiceResponseDTO> getAllServices() throws CarehiveException;
+    String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException;
 }
