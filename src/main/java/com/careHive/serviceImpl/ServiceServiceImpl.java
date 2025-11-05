@@ -3,9 +3,12 @@ package com.careHive.serviceImpl;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.entities.Services;
+import com.careHive.entities.User;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.ServiceRepository;
+import com.careHive.repositories.UserRepository;
 import com.careHive.services.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import java.util.stream.Collectors;
 public class ServiceServiceImpl implements ServiceService {
 
     private final ServiceRepository serviceRepository;
+    private final UserRepository userRepository;
 
     // ✅ CREATE SERVICE
     @Override
@@ -30,7 +34,7 @@ public class ServiceServiceImpl implements ServiceService {
         Services service = Services.builder()
                 .name(serviceRequestDTO.getName())
                 .description(serviceRequestDTO.getDescription())
-                .price(serviceRequestDTO.getPrice())
+                .pricePerHour(serviceRequestDTO.getPricePerHour())
                 .isActive(serviceRequestDTO.getIsActive())
                 .build();
 
@@ -47,7 +51,7 @@ public class ServiceServiceImpl implements ServiceService {
 
         existingService.setName(serviceRequestDTO.getName());
         existingService.setDescription(serviceRequestDTO.getDescription());
-        existingService.setPrice(serviceRequestDTO.getPrice());
+        existingService.setPricePerHour(serviceRequestDTO.getPricePerHour());
         existingService.setIsActive(serviceRequestDTO.getIsActive());
 
         Services updatedService = serviceRepository.save(existingService);
@@ -82,13 +86,22 @@ public class ServiceServiceImpl implements ServiceService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException {
+        User caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND,"User not found"));
+        caretaker.setServiceIds(serviceIds);
+        userRepository.save(caretaker);
+        return "Services assigned successfully";
+    }
+
     // 🔹 Helper Method
     private ServiceResponseDTO mapToResponseDTO(Services service) {
         return ServiceResponseDTO.builder()
                 .id(service.getId())
                 .name(service.getName())
                 .description(service.getDescription())
-                .price(service.getPrice())
+                .pricePerHour(service.getPricePerHour())
                 .isActive(service.getIsActive())
                 .build();
     }

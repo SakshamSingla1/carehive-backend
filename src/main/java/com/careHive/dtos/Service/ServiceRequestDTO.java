@@ -8,6 +8,6 @@ import lombok.Data;
 public class ServiceRequestDTO {
     private String name;
     private String description;
-    private Double price;
+    private Double pricePerHour;
     private Boolean isActive;
 }

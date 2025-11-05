@@ -63,4 +63,14 @@ public class ServiceController {
         List<ServiceResponseDTO> response = serviceService.getAllServices();
         return ApiResponse.respond(response, "All services fetched successfully", "Failed to fetch services");
     }
+
+    @Operation(summary = "Assign one or more services to a caretaker")
+    @PutMapping("/assign/{caretakerId}")
+    public ResponseEntity<ResponseModel<String>> assignServicesToCaretaker(
+            @PathVariable String caretakerId,
+            @RequestBody List<String> serviceIds) throws CarehiveException {
+        serviceService.assignServicesToCaretaker(caretakerId,serviceIds);
+        return ApiResponse.respond("Services assigned successfully",
+                "Services assigned successfully", "Failed to assign services");
+    }
 }
