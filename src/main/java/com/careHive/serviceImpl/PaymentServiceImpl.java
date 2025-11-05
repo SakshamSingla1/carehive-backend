@@ -39,16 +39,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDTO createPayment(PaymentRequestDTO dto) throws CarehiveException {
-        // ✅ Get booking
+        if(paymentRepository.existsByBookingIdAndStatus(dto.getBookingId(), PaymentStatusEnum.PENDING)){
+            throw new CarehiveException(ExceptionCodeEnum.PAYMENT_ALREADY_EXISTS,"Payment request already exists");
+        }
         Booking booking = bookingRepository.findById(dto.getBookingId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found for ID: " + dto.getBookingId()));
 
-        // ✅ Validate times
         if (booking.getStartTime() == null || booking.getEndTime() == null) {
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Booking start or end time missing");
         }
-
-        // ✅ Get related data
         Services service = serviceRepository.findById(booking.getServiceId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
         User elder = userRepository.findById(booking.getElderId())
@@ -116,6 +115,23 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public List<PaymentResponseDTO> getPaymentsByUser(String userId) {
         return paymentRepository.findByElderId (userId).stream()
+                .map(payment -> {
+                    try {
+                        Booking booking = bookingRepository.findById(payment.getBookingId()).orElse(null);
+                        Services service = booking != null ? serviceRepository.findById(booking.getServiceId()).orElse(null) : null;
+                        User elder = userRepository.findById(payment.getElderId()).orElse(null);
+                        User caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
+                        return mapToResponseDTO(payment, elder, caretaker, service);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PaymentResponseDTO> getPaymentsByCaretaker(String caretakerId) {
+        return paymentRepository.findByCaretakerId(caretakerId).stream()
                 .map(payment -> {
                     try {
                         Booking booking = bookingRepository.findById(payment.getBookingId()).orElse(null);
