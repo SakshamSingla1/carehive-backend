@@ -15,6 +15,7 @@ import com.careHive.repositories.*;
 import com.careHive.security.JwtUtil;
 import com.careHive.services.AuthService;
 import com.careHive.services.EmailService;
+import com.careHive.services.NTService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final JwtUtil jwtUtil;
     private final ServiceRepository serviceRepository;
+    private final NTService ntService;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -72,7 +74,11 @@ public class AuthServiceImpl implements AuthService {
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .build());
 
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        Map<String, Object> variables = Map.of(
+                "name", user.getName(),
+                "otp", otp
+        );
+        ntService.sendNotification("OTP-VERIFICATION", variables, user.getEmail());
 
         return AuthResponseDTO.builder()
                 .id(user.getId())
@@ -101,7 +107,11 @@ public class AuthServiceImpl implements AuthService {
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .build());
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        Map<String, Object> variables = Map.of(
+                "name", user.getName(),
+                "otp", otp
+        );
+        ntService.sendNotification("OTP-VERIFICATION", variables, user.getEmail());
         return "OTP sent successfully to registered phone number.";
     }
 
@@ -145,7 +155,11 @@ public class AuthServiceImpl implements AuthService {
                 .expiresAt(LocalDateTime.now().plusMinutes(10))
                 .build());
 
-        emailService.sendOtpEmail(email, otp);
+        Map<String, Object> variables = Map.of(
+                "name", user.getName(),
+                "otp", otp
+        );
+        ntService.sendNotification("OTP-VERIFICATION", variables, user.getEmail());
         return "A new OTP has been sent successfully.";
     }
 
@@ -165,7 +179,11 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         passwordResetTokenRepository.save(passwordResetToken);
 
-        emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), token);
+        Map<String, Object> variables = Map.of(
+                "name", user.getName(),
+                "token", token
+        );
+        ntService.sendNotification("FORGOT-PASSWORD-TOKEN", variables, user.getEmail());
         return "Password reset token has been sent to your registered email address.";
     }
 
