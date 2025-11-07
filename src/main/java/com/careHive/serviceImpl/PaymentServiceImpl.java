@@ -147,6 +147,13 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentResponseDTO mapToResponseDTO(Payment payment, User elder, User caretaker, Services service) {
+        double totalHours = payment.getHours();
+        int hours = (int) totalHours;
+        int minutes = (int) Math.round((totalHours - hours) * 60);
+
+        String formattedTime = String.format("%d hr%s %02d min%s",
+                hours, hours != 1 ? "s" : "",
+                minutes, minutes != 1 ? "s" : "");
         return PaymentResponseDTO.builder()
                 .id(payment.getId())
                 .bookingId(payment.getBookingId())
@@ -156,8 +163,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .caretakerName(caretaker != null ? caretaker.getName() : null)
                 .serviceId(service != null ? service.getId() : null)
                 .serviceName(service != null ? service.getName() : null)
-                .durationHours(String.format("%.2f", payment.getHours()))
-                .totalAmount(String.format("%.2f", payment.getTotalAmount()))
+                .durationHours(formattedTime)
+                .totalAmount(payment.getTotalAmount())
                 .status(payment.getStatus())
                 .build();
     }
