@@ -28,6 +28,7 @@ public enum ExceptionCodeEnum {
 
     FILE_NOT_FOUND("FILE_NOT_FOUND"),
 
+
     // ==== AUTH & SECURITY ====
     UNAUTHORIZED("UNAUTHORIZED"),
     INVALID_CREDENTIALS("INVALID_CREDENTIALS"),
