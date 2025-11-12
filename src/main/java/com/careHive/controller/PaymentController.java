@@ -71,11 +71,20 @@ public class PaymentController {
     }
 
     /**
-     * ✅ Get all payments associated with a specific user (elder or caretaker)
+     * ✅ Get all payments associated with a specific user
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<ResponseModel<List<PaymentResponseDTO>>> getPaymentsByUser(@PathVariable String userId) {
         List<PaymentResponseDTO> payments = paymentService.getPaymentsByUser(userId);
+        return ApiResponse.respond(payments, "Payments fetched successfully","Payments not found");
+    }
+
+    /**
+     * ✅ Get all payments associated with a specific caretaker
+     */
+    @GetMapping("/caretaker/{caretakerId}")
+    public ResponseEntity<ResponseModel<List<PaymentResponseDTO>>> getPaymentsByCaretaker(@PathVariable String caretakerId) {
+        List<PaymentResponseDTO> payments = paymentService.getPaymentsByCaretaker(caretakerId);
         return ApiResponse.respond(payments, "Payments fetched successfully","Payments not found");
     }
 }

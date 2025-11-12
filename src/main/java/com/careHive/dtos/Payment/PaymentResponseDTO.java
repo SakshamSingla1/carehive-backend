@@ -15,7 +15,8 @@ public class PaymentResponseDTO {
     private String caretakerName;
     private String serviceId;
     private String serviceName;
+    private double pricePerHour;
     private String durationHours;
-    private String totalAmount;
+    private double totalAmount;
     private PaymentStatusEnum status;
 }
