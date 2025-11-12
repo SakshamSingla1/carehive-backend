@@ -20,7 +20,6 @@ public class NTController {
 
     private final NTService ntService;
 
-    // ✅ Create a new Notification Template
     @PostMapping
     public ResponseEntity<ResponseModel<NTResponseDTO>> createTemplate(@RequestBody NTRequestDTO ntRequestDTO) throws CarehiveException {
         NTResponseDTO response = ntService.createNT(ntRequestDTO);
@@ -31,7 +30,6 @@ public class NTController {
         );
     }
 
-    // ✅ Update an existing template by name
     @PutMapping("/{name}")
     public ResponseEntity<ResponseModel<NTResponseDTO>> updateTemplate(
             @PathVariable String name,
@@ -45,7 +43,6 @@ public class NTController {
         );
     }
 
-    // ✅ Delete a template by ID
     @DeleteMapping("/{name}")
     public ResponseEntity<ResponseModel<String>> deleteTemplate(@PathVariable String name) throws CarehiveException {
         String message = ntService.deleteNT(name);
@@ -56,7 +53,6 @@ public class NTController {
         );
     }
 
-    // ✅ Fetch a template by name
     @GetMapping("/{name}")
     public ResponseEntity<ResponseModel<NTResponseDTO>> getTemplate(@PathVariable String name) throws CarehiveException {
         NTResponseDTO response = ntService.findNTBy(name);
@@ -67,7 +63,6 @@ public class NTController {
         );
     }
 
-    // ✅ Fetch all templates
     @GetMapping
     public ResponseEntity<ResponseModel<List<NTResponseDTO>>> getAllTemplates() {
         List<NTResponseDTO> templates = ntService.findAll();

@@ -9,11 +9,14 @@ import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.ServiceRepository;
 import com.careHive.repositories.UserRepository;
+import com.careHive.services.NTService;
 import com.careHive.services.ServiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +25,7 @@ public class ServiceServiceImpl implements ServiceService {
 
     private final ServiceRepository serviceRepository;
     private final UserRepository userRepository;
+    private final NTService ntService;
 
     // ✅ CREATE SERVICE
     @Override
@@ -31,6 +35,7 @@ public class ServiceServiceImpl implements ServiceService {
                     "Service already exists with the same name");
         }
 
+        // Save the service
         Services service = Services.builder()
                 .name(serviceRequestDTO.getName())
                 .description(serviceRequestDTO.getDescription())
@@ -39,6 +44,22 @@ public class ServiceServiceImpl implements ServiceService {
                 .build();
 
         Services savedService = serviceRepository.save(service);
+
+        // Notify all caretakers
+        List<User> caretakers = userRepository.findAllByRoleCode(RoleEnum.CARETAKER.name());
+
+        for (User caretaker : caretakers) {
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("caretakerName", caretaker.getName());
+            variables.put("serviceName", savedService.getName());
+            variables.put("description", savedService.getDescription());
+            variables.put("pricePerHour", savedService.getPricePerHour());
+            variables.put("isActive", savedService.getIsActive() ? "Active" : "Inactive");
+            variables.put("dashboardLink", "https://app.carehive.com/dashboard");
+
+            // ✅ Send dynamic notification
+            ntService.sendNotification("NEW-SERVICE-NOTIFICATION-CARETAKER", variables, caretaker.getEmail());
+        }
 
         return mapToResponseDTO(savedService);
     }
@@ -86,10 +107,11 @@ public class ServiceServiceImpl implements ServiceService {
                 .collect(Collectors.toList());
     }
 
+    // ✅ ASSIGN SERVICES TO CARETAKER
     @Override
     public String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException {
         User caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND,"User not found"));
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
         caretaker.setServiceIds(serviceIds);
         userRepository.save(caretaker);
         return "Services assigned successfully";
