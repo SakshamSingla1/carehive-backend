@@ -33,5 +33,5 @@ public class AdminStatsDTO {
     private Long completedBookings;
     private Long rejectedBookings;
     private Long inProgressBookings;
-    private Long acceptedBookings;
+    private Long confirmedBookings;
 }

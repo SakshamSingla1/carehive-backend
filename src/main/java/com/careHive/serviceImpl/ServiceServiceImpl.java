@@ -54,7 +54,7 @@ public class ServiceServiceImpl implements ServiceService {
             variables.put("serviceName", savedService.getName());
             variables.put("description", savedService.getDescription());
             variables.put("pricePerHour", savedService.getPricePerHour());
-            variables.put("isActive", savedService.getIsActive() ? "Active" : "Inactive");
+            variables.put("isActive", savedService.getStatus() ? "Active" : "Inactive");
             variables.put("dashboardLink", "https://app.carehive.com/dashboard");
 
             // ✅ Send dynamic notification
