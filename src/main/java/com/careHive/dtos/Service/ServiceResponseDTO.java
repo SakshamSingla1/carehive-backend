@@ -10,5 +10,5 @@ public class ServiceResponseDTO {
     private String name;
     private String description;
     private double pricePerHour;
-    private Boolean isActive;
+    private Boolean status;
 }

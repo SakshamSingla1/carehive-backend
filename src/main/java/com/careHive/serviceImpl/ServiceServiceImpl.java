@@ -40,7 +40,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .name(serviceRequestDTO.getName())
                 .description(serviceRequestDTO.getDescription())
                 .pricePerHour(serviceRequestDTO.getPricePerHour())
-                .isActive(serviceRequestDTO.getIsActive())
+                .status(serviceRequestDTO.getStatus())
                 .build();
 
         Services savedService = serviceRepository.save(service);
@@ -73,7 +73,7 @@ public class ServiceServiceImpl implements ServiceService {
         existingService.setName(serviceRequestDTO.getName());
         existingService.setDescription(serviceRequestDTO.getDescription());
         existingService.setPricePerHour(serviceRequestDTO.getPricePerHour());
-        existingService.setIsActive(serviceRequestDTO.getIsActive());
+        existingService.setStatus(serviceRequestDTO.getStatus());
 
         Services updatedService = serviceRepository.save(existingService);
         return mapToResponseDTO(updatedService);
@@ -124,7 +124,7 @@ public class ServiceServiceImpl implements ServiceService {
                 .name(service.getName())
                 .description(service.getDescription())
                 .pricePerHour(service.getPricePerHour())
-                .isActive(service.getIsActive())
+                .status(service.getStatus())
                 .build();
     }
 }
