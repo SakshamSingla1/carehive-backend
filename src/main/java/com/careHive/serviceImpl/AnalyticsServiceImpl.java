@@ -40,7 +40,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         long pendingBookings = bookingRepository.countByStatus(BookingStatusEnum.PENDING);
         long completedBookings = bookingRepository.countByStatus(BookingStatusEnum.COMPLETED);
         long rejectedBookings = bookingRepository.countByStatus(BookingStatusEnum.REJECTED);
-        long acceptedBookings = bookingRepository.countByStatus(BookingStatusEnum.ACCEPTED);
+        long confirmedBookings = bookingRepository.countByStatus(BookingStatusEnum.CONFIRMED);
         long inProgressBookings = bookingRepository.countByStatus(BookingStatusEnum.IN_PROGRESS);
 
         return AdminStatsDTO.builder()
@@ -57,7 +57,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .pendingBookings(pendingBookings)
                 .completedBookings(completedBookings)
                 .rejectedBookings(rejectedBookings)
-                .acceptedBookings(acceptedBookings)
+                .confirmedBookings(confirmedBookings)
                 .inProgressBookings(inProgressBookings).build();
     }
 }
