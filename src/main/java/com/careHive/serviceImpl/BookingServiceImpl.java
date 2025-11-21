@@ -13,6 +13,7 @@ import com.careHive.repositories.BookingRepository;
 import com.careHive.repositories.ServiceRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.BookingService;
+import com.careHive.services.NTService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +30,9 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ServiceRepository serviceRepository;
+    private final NTService ntService;
 
+    // ✅ Create a new booking (Elder requests service)
     @Override
     public BookingResponseDTO create(BookingRequestDTO dto) throws CarehiveException {
         User elder = userRepository.findByIdAndRoleCode(dto.getElderId(), RoleEnum.ELDER.name())
@@ -59,28 +63,28 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         bookingRepository.save(booking);
+
+        // ✅ Notify caretaker about new booking
+        sendBookingStatusEmail(booking);
+
         return mapToResponseDTO(booking);
     }
 
+    // ✅ Update booking (status change triggers email)
     @Override
     public BookingResponseDTO update(String id, BookingRequestDTO dto) throws CarehiveException {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found"));
 
-        // ✅ Update status logic
         if (dto.getStatus() != null) {
             booking.setStatus(dto.getStatus());
 
             if (dto.getStatus() == BookingStatusEnum.IN_PROGRESS) {
-                // Mark start time if not already
                 if (booking.getStartTime() == null) {
                     booking.setStartTime(LocalDateTime.now());
                 }
             } else if (dto.getStatus() == BookingStatusEnum.COMPLETED) {
-                // Set end time
                 booking.setEndTime(LocalDateTime.now());
-
-                // ✅ Calculate duration (only now that endTime exists)
                 if (booking.getStartTime() != null && booking.getEndTime() != null) {
                     double hours = Duration.between(booking.getStartTime(), booking.getEndTime()).toMinutes() / 60.0;
                     booking.setDurationHours(hours);
@@ -91,9 +95,13 @@ public class BookingServiceImpl implements BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
         bookingRepository.save(booking);
 
+        // ✅ Send mail notification on status change
+        sendBookingStatusEmail(booking);
+
         return mapToResponseDTO(booking);
     }
 
+    // ✅ Get booking by ID
     @Override
     public BookingResponseDTO getBooking(String id) throws CarehiveException {
         Booking booking = bookingRepository.findById(id)
@@ -101,6 +109,7 @@ public class BookingServiceImpl implements BookingService {
         return mapToResponseDTO(booking);
     }
 
+    // ✅ Delete booking
     @Override
     public String delete(String id) throws CarehiveException {
         Booking booking = bookingRepository.findById(id)
@@ -109,6 +118,7 @@ public class BookingServiceImpl implements BookingService {
         return "Booking deleted successfully.";
     }
 
+    // ✅ Get all bookings
     @Override
     public List<BookingResponseDTO> getAll() throws CarehiveException {
         List<Booking> bookings = bookingRepository.findAll();
@@ -119,6 +129,48 @@ public class BookingServiceImpl implements BookingService {
         return list;
     }
 
+    // ✅ Email Notification Logic
+    private void sendBookingStatusEmail(Booking booking) throws CarehiveException {
+        User elder = userRepository.findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER.name())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
+
+        User caretaker = userRepository.findByIdAndRoleCode(booking.getCaretakerId(), RoleEnum.CARETAKER.name())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
+
+        Services service = serviceRepository.findById(booking.getServiceId())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Service not found"));
+
+        Map<String, Object> variables = Map.of(
+                "elderName", elder.getName(),
+                "caretakerName", caretaker.getName(),
+                "serviceName", service.getName(),
+                "startTime", booking.getStartTime() != null ? booking.getStartTime().toString() : "N/A",
+                "endTime", booking.getEndTime() != null ? booking.getEndTime().toString() : "N/A",
+                "durationHours", booking.getDurationHours()
+        );
+
+        String elderEmail = elder.getEmail();
+        String caretakerEmail = caretaker.getEmail();
+
+        switch (booking.getStatus()) {
+            case PENDING -> ntService.sendNotification("BOOKING-PENDING-CARETAKER", variables, caretakerEmail);
+            case CONFIRMED -> {
+                ntService.sendNotification("BOOKING-CONFIRMATION-ELDER", variables, elderEmail);
+                ntService.sendNotification("BOOKING-CONFIRMATION-CARETAKER", variables, caretakerEmail);
+            }
+            case IN_PROGRESS -> {
+                ntService.sendNotification("BOOKING-INPROGRESS-ELDER", variables, elderEmail);
+                ntService.sendNotification("BOOKING-INPROGRESS-CARETAKER", variables, caretakerEmail);
+            }
+            case REJECTED -> ntService.sendNotification("BOOKING-REJECTED-ELDER", variables, elderEmail);
+            case COMPLETED -> {
+                ntService.sendNotification("BOOKING-COMPLETED-ELDER", variables, elderEmail);
+                ntService.sendNotification("BOOKING-COMPLETED-CARETAKER", variables, caretakerEmail);
+            }
+        }
+    }
+
+    // ✅ Mapper (Entity → DTO)
     private BookingResponseDTO mapToResponseDTO(Booking booking) throws CarehiveException {
         User elder = userRepository.findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER.name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));

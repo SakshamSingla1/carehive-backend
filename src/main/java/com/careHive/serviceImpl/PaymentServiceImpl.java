@@ -17,7 +17,6 @@ import com.careHive.services.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,16 +38,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponseDTO createPayment(PaymentRequestDTO dto) throws CarehiveException {
-        // ✅ Get booking
+        if(paymentRepository.existsByBookingIdAndStatus(dto.getBookingId(), PaymentStatusEnum.PENDING)){
+            throw new CarehiveException(ExceptionCodeEnum.PAYMENT_ALREADY_EXISTS,"Payment request already exists");
+        }
         Booking booking = bookingRepository.findById(dto.getBookingId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found for ID: " + dto.getBookingId()));
 
-        // ✅ Validate times
         if (booking.getStartTime() == null || booking.getEndTime() == null) {
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Booking start or end time missing");
         }
-
-        // ✅ Get related data
         Services service = serviceRepository.findById(booking.getServiceId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
         User elder = userRepository.findById(booking.getElderId())
@@ -130,7 +128,31 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<PaymentResponseDTO> getPaymentsByCaretaker(String caretakerId) {
+        return paymentRepository.findByCaretakerId(caretakerId).stream()
+                .map(payment -> {
+                    try {
+                        Booking booking = bookingRepository.findById(payment.getBookingId()).orElse(null);
+                        Services service = booking != null ? serviceRepository.findById(booking.getServiceId()).orElse(null) : null;
+                        User elder = userRepository.findById(payment.getElderId()).orElse(null);
+                        User caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
+                        return mapToResponseDTO(payment, elder, caretaker, service);
+                    } catch (Exception e) {
+                        return null;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
     private PaymentResponseDTO mapToResponseDTO(Payment payment, User elder, User caretaker, Services service) {
+        double totalHours = payment.getHours();
+        int hours = (int) totalHours;
+        int minutes = (int) Math.round((totalHours - hours) * 60);
+
+        String formattedTime = String.format("%d hr%s %02d min%s",
+                hours, hours != 1 ? "s" : "",
+                minutes, minutes != 1 ? "s" : "");
         return PaymentResponseDTO.builder()
                 .id(payment.getId())
                 .bookingId(payment.getBookingId())
@@ -140,8 +162,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .caretakerName(caretaker != null ? caretaker.getName() : null)
                 .serviceId(service != null ? service.getId() : null)
                 .serviceName(service != null ? service.getName() : null)
-                .durationHours(String.format("%.2f", payment.getHours()))
-                .totalAmount(String.format("%.2f", payment.getTotalAmount()))
+                .durationHours(formattedTime)
+                .totalAmount(payment.getTotalAmount())
                 .status(payment.getStatus())
                 .build();
     }

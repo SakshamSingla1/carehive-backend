@@ -7,16 +7,20 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "services")
-public class Services {
+@Document(collection = "ratings")
+public class Rating {
     @Id
     private String id;
-    private String name;
-    private String description;
-    private double pricePerHour;
-    private Boolean status;
+    private String userId;
+    private String caretakerId;
+    private String bookingId;
+    private double rating;
+    private String comment;
+    private LocalDateTime createdAt;
 }

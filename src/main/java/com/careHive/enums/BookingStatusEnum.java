@@ -2,7 +2,7 @@ package com.careHive.enums;
 
 public enum BookingStatusEnum {
     PENDING,
-    ACCEPTED,
+    CONFIRMED,
     IN_PROGRESS,
     REJECTED,
     COMPLETED

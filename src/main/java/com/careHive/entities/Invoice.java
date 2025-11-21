@@ -11,12 +11,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "services")
-public class Services {
+@Document(collection = "invoices")
+public class Invoice {
     @Id
     private String id;
-    private String name;
-    private String description;
-    private double pricePerHour;
-    private Boolean status;
+    private String paymentId;
+    private String invoiceUrl;
 }
