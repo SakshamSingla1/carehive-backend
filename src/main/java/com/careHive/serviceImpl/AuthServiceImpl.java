@@ -37,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final ServiceRepository serviceRepository;
     private final NTService ntService;
+    private final ColorThemeRepository colorThemeRepository;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -48,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same phone number already exists");
         }
 
-        Role role = roleRepository.findByEnumCode(registerDTO.getRoleCode())
+        Role role = roleRepository.findByEnumCode(registerDTO.getRoleCode().name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
         User user = User.builder()
@@ -221,25 +222,33 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponseDTO login(AuthLoginDTO loginDTO) throws CarehiveException {
         User user = null;
 
+        // ---------------- FIND USER ----------------
         if (loginDTO.getEmail() != null && !loginDTO.getEmail().isEmpty()) {
             user = userRepository.findByEmail(loginDTO.getEmail())
-                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found with this email"));
+                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                            "User not found with this email"));
         } else if (loginDTO.getUsername() != null && !loginDTO.getUsername().isEmpty()) {
             user = userRepository.findByUsername(loginDTO.getUsername())
-                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found with this username"));
+                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                            "User not found with this username"));
         } else if (loginDTO.getPhoneNumber() != null && !loginDTO.getPhoneNumber().isEmpty()) {
+
             user = userRepository.findByPhoneNumber(loginDTO.getPhoneNumber())
-                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found with this phone number"));
+                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                            "User not found with this phone number"));
 
             if (loginDTO.getOtp() == null || loginDTO.getOtp().isEmpty()) {
                 throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "OTP is required for phone login");
             }
 
-            OtpStore otpEntity = otpRepository.findByEmail(user.getEmail())
-                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "No OTP found for this phone number"));
+            OtpStore otp = otpRepository.findByEmail(user.getEmail())
+                    .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST,
+                            "No OTP found for this phone number"));
 
-            if (!otpEntity.getOtp().equals(loginDTO.getOtp()) || otpEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
-                throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid or expired OTP");
+            if (!otp.getOtp().equals(loginDTO.getOtp())
+                    || otp.getExpiresAt().isBefore(LocalDateTime.now())) {
+                throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS,
+                        "Invalid or expired OTP");
             }
 
             if (!user.isVerified()) {
@@ -247,31 +256,50 @@ public class AuthServiceImpl implements AuthService {
                 userRepository.save(user);
             }
 
-            otpRepository.delete(otpEntity);
+            otpRepository.delete(otp);
         } else {
-            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Email, Username, or Phone number is required");
+            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST,
+                    "Email, Username, or Phone number is required");
         }
 
-        if (loginDTO.getPhoneNumber() == null || loginDTO.getPhoneNumber().isEmpty()) {
-            if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
-                throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid password");
-            }
+        // ---------------- PASSWORD ----------------
+        if (loginDTO.getPhoneNumber() == null && !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid password");
         }
 
         if (!user.isVerified()) {
-            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Please verify your email or phone first");
+            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST,
+                    "Please verify your email or phone first");
         }
 
+        // ---------------- JWT TOKEN ----------------
         String token = jwtUtil.generateAccessToken(user.getEmail());
 
-        Role role = roleRepository.findByEnumCode(user.getRoleCode())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
+        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
+                .orElseThrow(() ->
+                        new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found")
+                );
 
+        // ---------------- FETCH ALL THEMES ----------------
+        List<ColorTheme> themes = colorThemeRepository.findByRole(user.getRoleCode());
+
+        // ---------------- DEFAULT BACKUP THEME ----------------
+        ColorTheme defaultTheme = themes.stream()
+                .filter(t -> "default".equalsIgnoreCase(t.getThemeName()))
+                .findFirst()
+                .orElse(themes.isEmpty() ? null : themes.get(0));
+
+        // ---------------- FINAL RESPONSE ----------------
         return LoginResponseDTO.builder()
-                .message("Login successful")
+                .id(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .phone(user.getPhoneNumber())
                 .email(user.getEmail())
                 .role(role.getName())
                 .token(token)
+                .themes(themes)          // ⚡ FRONTEND GETS ALL THEMES
+                .defaultTheme(defaultTheme) // ⚡ Identify the active one
                 .build();
     }
 
@@ -306,7 +334,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        Role role = roleRepository.findByEnumCode(user.getRoleCode())
+        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
         // Fetch associated services safely
@@ -322,7 +350,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
-                .roleCode(user.getRoleCode())
+                .roleCode(user.getRoleCode().name())
                 .roleName(role.getName())
                 .username(user.getUsername())
                 .isVerified(user.isVerified())

@@ -24,7 +24,7 @@ public class User {
     private String username;
     private String email;
     private String password;
-    private String roleCode;
+    private RoleEnum roleCode;
     private String phoneNumber;
     private boolean isVerified;
     private List<String> serviceIds; // List of service references
