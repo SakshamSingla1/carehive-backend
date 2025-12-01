@@ -9,6 +9,8 @@ import com.careHive.payload.ResponseModel;
 import com.careHive.services.ColorThemeService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -91,9 +93,9 @@ public class ColorThemeController {
     // GET ALL THEMES
     // ---------------------------------------------------------
     @GetMapping
-    public ResponseEntity<ResponseModel<List<ColorThemeResponseDTO>>> getAllThemes() {
+    public ResponseEntity<ResponseModel<Page<ColorThemeResponseDTO>>> getAllThemes(Pageable pageable) {
 
-        List<ColorThemeResponseDTO> response = colorThemeService.getAllThemes();
+        Page<ColorThemeResponseDTO> response = colorThemeService.getAllThemes(pageable);
 
         return ApiResponse.respond(
                 response,

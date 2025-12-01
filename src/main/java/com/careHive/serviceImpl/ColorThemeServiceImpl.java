@@ -15,6 +15,8 @@ import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.ColorThemeRepository;
 import com.careHive.services.ColorThemeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -109,11 +111,9 @@ public class ColorThemeServiceImpl implements ColorThemeService {
     // GET ALL THEMES
     // ---------------------------
     @Override
-    public List<ColorThemeResponseDTO> getAllThemes() {
-        return repository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<ColorThemeResponseDTO> getAllThemes(Pageable pageable) {
+        Page<ColorTheme> colorThemes= repository.findAll(pageable);
+        return colorThemes.map(this::mapToResponse);
     }
 
     // ---------------------------
