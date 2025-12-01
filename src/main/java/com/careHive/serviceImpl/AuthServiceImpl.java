@@ -8,7 +8,6 @@ import com.careHive.dtos.Password.PasswordResetRequestDTO;
 import com.careHive.dtos.User.UserProfileDTO;
 import com.careHive.entities.*;
 import com.careHive.enums.ExceptionCodeEnum;
-import com.careHive.enums.RoleEnum;
 import com.careHive.enums.VerificationStatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.*;
@@ -20,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 
