@@ -9,6 +9,10 @@ import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.NavLinkRepository;
 import com.careHive.services.NavLinkService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,6 +24,10 @@ public class NavLinkServiceImpl implements NavLinkService {
 
     @Autowired
     private NavLinkRepository navLinkRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
 
     @Override
     public NavLinkResponseDTO createNavLink(NavLinkRequestDTO request) throws CarehiveException {
@@ -78,11 +86,50 @@ public class NavLinkServiceImpl implements NavLinkService {
         return navLinks.stream().map(this::toResponseDTO).toList();
     }
 
+
+    // ⭐⭐⭐ UPDATED METHOD WITH FILTER + SEARCH + SORT + PAGINATION ⭐⭐⭐
     @Override
-    public List<NavLinkResponseDTO> getAllNavLinks() {
-        List<NavLink> navLinks = navLinkRepository.findAll();
-        return navLinks.stream().map(this::toResponseDTO).toList();
+    public Page<NavLinkResponseDTO> getAllNavLinks(Pageable pageable, RoleEnum role, String search, String sortBy, String sortDir) {
+
+        Query query = new Query();
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        // Filter: Role
+        if (role != null) {
+            criteriaList.add(Criteria.where("roleCode").is(role));
+        }
+
+        // Filter: Search in name, path, index
+        if (search != null && !search.isBlank()) {
+            String regex = ".*" + search + ".*";
+            criteriaList.add(
+                    new Criteria().orOperator(
+                            Criteria.where("name").regex(regex, "i"),
+                            Criteria.where("path").regex(regex, "i"),
+                            Criteria.where("index").regex(regex, "i")
+                    )
+            );
+        }
+
+        // Add all criteria
+        if (!criteriaList.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        }
+
+        // Sorting
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        query.with(Sort.by(direction, sortBy));
+
+        // Pagination
+        long total = mongoTemplate.count(query, NavLink.class);
+        query.with(pageable);
+
+        List<NavLink> navLinks = mongoTemplate.find(query, NavLink.class);
+        List<NavLinkResponseDTO> dtoList = navLinks.stream().map(this::toResponseDTO).toList();
+
+        return new PageImpl<>(dtoList, pageable, total);
     }
+
 
     @Override
     public NavLinkResponseDTO getNavLink(RoleEnum role, String roleIndex) throws CarehiveException {
@@ -90,6 +137,7 @@ public class NavLinkServiceImpl implements NavLinkService {
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.NAV_LINK_NOT_FOUND, "Nav Link not found"));
         return toResponseDTO(navLink);
     }
+
 
     private NavLinkResponseDTO toResponseDTO(NavLink navLink) {
         return NavLinkResponseDTO.builder()
