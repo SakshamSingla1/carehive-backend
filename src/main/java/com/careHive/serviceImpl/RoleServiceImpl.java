@@ -8,6 +8,7 @@ import com.careHive.services.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,9 +20,12 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public RoleResponseDTO createRole(RoleRequestDTO roleRequestDTO) {
-        Role role = new Role();
-        role.setName(roleRequestDTO.getName());
-        role.setEnumCode(roleRequestDTO.getEnumCode());
+        Role role = Role.builder()
+                .name(roleRequestDTO.getName())
+                .enumCode(roleRequestDTO.getEnumCode())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
 
         Role savedRole = roleRepository.save(role);
 
@@ -35,6 +39,7 @@ public class RoleServiceImpl implements RoleService {
 
         existingRole.setName(roleRequestDTO.getName());
         existingRole.setEnumCode(roleRequestDTO.getEnumCode());
+        existingRole.setUpdatedAt(LocalDateTime.now());
 
         Role updatedRole = roleRepository.save(existingRole);
 
@@ -70,6 +75,8 @@ public class RoleServiceImpl implements RoleService {
         dto.setId(role.getId());
         dto.setName(role.getName());
         dto.setEnumCode(role.getEnumCode());
+        dto.setCreatedAt(role.getCreatedAt());
+        dto.setUpdatedAt(role.getUpdatedAt());
         return dto;
     }
 }

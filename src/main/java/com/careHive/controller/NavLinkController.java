@@ -8,6 +8,8 @@ import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
 import com.careHive.services.NavLinkService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -62,12 +64,18 @@ public class NavLinkController {
         return ApiResponse.respond(responseDTO, "Nav Links fetched successfully", "Failed to fetch nav links");
     }
 
-    // GET ALL
     @GetMapping
-    public ResponseEntity<ResponseModel<List<NavLinkResponseDTO>>> getAllNavLinks() {
-        List<NavLinkResponseDTO> responseDTO = navLinkService.getAllNavLinks();
+    public ResponseEntity<ResponseModel<Page<NavLinkResponseDTO>>> getAllNavLinks(
+            Pageable pageable,
+            @RequestParam(required = false) RoleEnum role,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir
+    ) {
+        Page<NavLinkResponseDTO> responseDTO = navLinkService.getAllNavLinks(pageable, role, search, sortBy, sortDir);
         return ApiResponse.respond(responseDTO, "Nav Links fetched successfully", "Failed to fetch nav links");
     }
+
 
     // GET SINGLE
     @GetMapping("/{role}/{index}")
