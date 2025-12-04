@@ -16,6 +16,7 @@ import com.careHive.services.AuthService;
 import com.careHive.services.EmailService;
 import com.careHive.services.NTService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,9 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -36,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     private final ServiceRepository serviceRepository;
     private final NTService ntService;
     private final ColorThemeRepository colorThemeRepository;
+    private final NavLinkRepository navLinkRepository;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -178,9 +183,10 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         passwordResetTokenRepository.save(passwordResetToken);
 
+        String resetLink = frontendUrl + "?token=" + token;  // <-- Value available here
         Map<String, Object> variables = Map.of(
                 "name", user.getName(),
-                "token", token
+                "resetLink", resetLink
         );
         ntService.sendNotification("FORGOT-PASSWORD-TOKEN", variables, user.getEmail());
         return "Password reset token has been sent to your registered email address.";
@@ -287,6 +293,8 @@ public class AuthServiceImpl implements AuthService {
                 .findFirst()
                 .orElse(themes.isEmpty() ? null : themes.get(0));
 
+        List<NavLink> navLinks = navLinkRepository.findByRoleCode(user.getRoleCode());
+
         // ---------------- FINAL RESPONSE ----------------
         return LoginResponseDTO.builder()
                 .id(user.getId())
@@ -298,6 +306,7 @@ public class AuthServiceImpl implements AuthService {
                 .token(token)
                 .themes(themes)          // ⚡ FRONTEND GETS ALL THEMES
                 .defaultTheme(defaultTheme) // ⚡ Identify the active one
+                .navLinks(navLinks)
                 .build();
     }
 
