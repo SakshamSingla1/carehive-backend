@@ -8,7 +8,6 @@ import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.NavLinkRepository;
 import com.careHive.services.NavLinkService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -18,19 +17,27 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class NavLinkServiceImpl implements NavLinkService {
 
-    @Autowired
-    private NavLinkRepository navLinkRepository;
+    private final NavLinkRepository navLinkRepository;
+    private final MongoTemplate mongoTemplate;
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
-
+    // Constructor injection
+    public NavLinkServiceImpl(NavLinkRepository navLinkRepository, MongoTemplate mongoTemplate) {
+        this.navLinkRepository = navLinkRepository;
+        this.mongoTemplate = mongoTemplate;
+    }
 
     @Override
     public NavLinkResponseDTO createNavLink(NavLinkRequestDTO request) throws CarehiveException {
+        if (request == null) {
+            throw new CarehiveException(ExceptionCodeEnum.NAV_LINK_NOT_FOUND, "Request is null");
+        }
+
         if (navLinkRepository.existsByRoleCodeAndIndex(request.getRoleCode(), request.getIndex())) {
             throw new CarehiveException(ExceptionCodeEnum.NAV_LINK_ALREADY_EXISTS,"NavLink already exists for this role and index");
         }
@@ -53,11 +60,11 @@ public class NavLinkServiceImpl implements NavLinkService {
 
     @Override
     public NavLinkResponseDTO updateNavLink(String roleIndex, RoleEnum role, NavLinkRequestDTO request) throws CarehiveException {
-
         NavLink existing = navLinkRepository.findByRoleCodeAndIndex(role, roleIndex)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.NAV_LINK_NOT_FOUND, "Nav Link not found"
                 ));
+
         NavLink pathConflict = navLinkRepository.findByRoleCodeAndPath(role, request.getPath())
                 .orElse(null);
         if (pathConflict != null && !pathConflict.getId().equals(existing.getId())) {
@@ -66,9 +73,25 @@ public class NavLinkServiceImpl implements NavLinkService {
                     "Path already exists for this role"
             );
         }
+
+        NavLink indexConflict = navLinkRepository
+                .findByRoleCodeAndIndex(request.getRoleCode(), request.getIndex())
+                .orElse(null);
+
+        if (indexConflict != null && !indexConflict.getId().equals(existing.getId())) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.NAV_LINK_ALREADY_EXISTS,
+                    "Index already exists for this role"
+            );
+        }
+
+        // update fields
         existing.setName(request.getName());
+        existing.setIndex(request.getIndex());
         existing.setPath(request.getPath());
+        existing.setRoleCode(request.getRoleCode());
         existing.setUpdatedAt(LocalDateTime.now());
+
         navLinkRepository.save(existing);
         return toResponseDTO(existing);
     }
@@ -83,13 +106,27 @@ public class NavLinkServiceImpl implements NavLinkService {
     @Override
     public List<NavLinkResponseDTO> getNavLinks(RoleEnum role) {
         List<NavLink> navLinks = navLinkRepository.findByRoleCode(role);
-        return navLinks.stream().map(this::toResponseDTO).toList();
+        return navLinks.stream().map(this::toResponseDTO).collect(Collectors.toList());
     }
 
 
-    // ⭐⭐⭐ UPDATED METHOD WITH FILTER + SEARCH + SORT + PAGINATION ⭐⭐⭐
+    // ⭐⭐⭐ IMPROVED METHOD WITH FILTER + SEARCH + SORT + PAGINATION ⭐⭐⭐
     @Override
     public Page<NavLinkResponseDTO> getAllNavLinks(Pageable pageable, RoleEnum role, String search, String sortBy, String sortDir) {
+
+        // Defaults & null-safety
+        String effectiveSortBy = (sortBy == null || sortBy.isBlank()) ? "index" : sortBy;
+        String effectiveSortDir = (sortDir == null || sortDir.isBlank()) ? "asc" : sortDir;
+        Sort.Direction direction = effectiveSortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        // Build a pageable that includes the requested sort (so sorting is always applied predictably)
+        Pageable effectivePageable;
+        if (pageable == null) {
+            effectivePageable = PageRequest.of(0, 20, Sort.by(direction, effectiveSortBy));
+        } else {
+            // If incoming pageable already has a sort, prefer explicit sort params (effectiveSortBy/Dir)
+            effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, effectiveSortBy));
+        }
 
         Query query = new Query();
         List<Criteria> criteriaList = new ArrayList<>();
@@ -99,9 +136,10 @@ public class NavLinkServiceImpl implements NavLinkService {
             criteriaList.add(Criteria.where("roleCode").is(role));
         }
 
-        // Filter: Search in name, path, index
+        // Filter: Search in name, path, index (escape regex meta-characters)
         if (search != null && !search.isBlank()) {
-            String regex = ".*" + search + ".*";
+            String escaped = Pattern.quote(search); // safer: treat entire search as literal
+            String regex = ".*" + escaped + ".*";
             criteriaList.add(
                     new Criteria().orOperator(
                             Criteria.where("name").regex(regex, "i"),
@@ -111,23 +149,23 @@ public class NavLinkServiceImpl implements NavLinkService {
             );
         }
 
-        // Add all criteria
         if (!criteriaList.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
         }
 
-        // Sorting
-        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-        query.with(Sort.by(direction, sortBy));
+        // Apply sort to query (but final pageable is used for pagination)
+        query.with(Sort.by(direction, effectiveSortBy));
 
-        // Pagination
+        // Count BEFORE pagination
         long total = mongoTemplate.count(query, NavLink.class);
-        query.with(pageable);
+
+        // Apply pagination (page/size + sort). Use effectivePageable so sort is consistent.
+        query.with(effectivePageable);
 
         List<NavLink> navLinks = mongoTemplate.find(query, NavLink.class);
-        List<NavLinkResponseDTO> dtoList = navLinks.stream().map(this::toResponseDTO).toList();
+        List<NavLinkResponseDTO> dtoList = navLinks.stream().map(this::toResponseDTO).collect(Collectors.toList());
 
-        return new PageImpl<>(dtoList, pageable, total);
+        return new PageImpl<>(dtoList, effectivePageable, total);
     }
 
 

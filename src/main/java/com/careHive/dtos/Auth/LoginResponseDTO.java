@@ -2,6 +2,7 @@ package com.careHive.dtos.Auth;
 
 import com.careHive.dtos.ColorTheme.ColorThemeResponseDTO;
 import com.careHive.entities.ColorTheme;
+import com.careHive.entities.NavLink;
 import lombok.Builder;
 import lombok.Data;
 
@@ -20,4 +21,6 @@ public class LoginResponseDTO {
 
     private List<ColorTheme> themes;       // ← all themes for this role
     private ColorTheme defaultTheme;        // ← default theme for usage
+
+    private List<NavLink> navLinks;
 }
