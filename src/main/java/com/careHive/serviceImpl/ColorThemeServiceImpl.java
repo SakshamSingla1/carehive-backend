@@ -65,7 +65,8 @@ public class ColorThemeServiceImpl implements ColorThemeService {
                 .orElseThrow(() ->
                         new CarehiveException(ExceptionCodeEnum.COLOR_THEME_NOT_FOUND, "Theme not found"));
 
-        // Update only palette and metadata (you may allow updating role/themeName if needed)
+        theme.setThemeName(dto.getThemeName());
+        theme.setRole(dto.getRole());
         theme.setPalette(mapPaletteDtoToEntity(dto.getPalette()));
         theme.setUpdatedAt(LocalDateTime.now());
         theme.setUpdatedBy("admin"); // replace with actual user
