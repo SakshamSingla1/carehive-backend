@@ -1,19 +1,27 @@
 package com.careHive.serviceImpl;
 
+import com.careHive.dtos.NavLinks.NavLinkResponseDTO;
 import com.careHive.dtos.NotificationTemplate.NTRequestDTO;
 import com.careHive.dtos.NotificationTemplate.NTResponseDTO;
+import com.careHive.entities.NavLink;
 import com.careHive.entities.NotificationTemplate;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.NTRepository;
 import com.careHive.services.EmailService;
 import com.careHive.services.NTService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +31,8 @@ public class NTServiceImpl implements NTService {
     NTRepository ntRepository;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @Override
     public NTResponseDTO createNT(NTRequestDTO ntRequestDTO) throws CarehiveException {
@@ -77,10 +87,29 @@ public class NTServiceImpl implements NTService {
     }
 
     @Override
-    public List<NTResponseDTO> findAll() {
-        return ntRepository.findAll().stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<NTResponseDTO> getAllNotificationTemplates(
+            Pageable pageable, String search, String sortBy, String sortDir) {
+        Pageable p = PageRequest.of(
+                pageable == null ? 0 : pageable.getPageNumber(),
+                pageable == null ? 20 : pageable.getPageSize(),
+                Sort.by("desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                        (sortBy == null || sortBy.isBlank()) ? "index" : sortBy)
+        );
+        Query q = new Query().with(p);
+        if (search != null && !search.isBlank()) {
+            String r = ".*" + Pattern.quote(search) + ".*";
+            q.addCriteria(new Criteria().orOperator(
+                    Criteria.where("name").regex(r, "i"),
+                    Criteria.where("path").regex(r, "i"),
+                    Criteria.where("index").regex(r, "i")
+            ));
+        }
+        long total = mongoTemplate.count(q, NotificationTemplate.class);
+        return new PageImpl<>(
+                mongoTemplate.find(q, NotificationTemplate.class)
+                        .stream().map(this::mapToResponseDTO).toList(),
+                p, total
+        );
     }
 
     @Override

@@ -17,6 +17,8 @@ import com.careHive.services.EmailService;
 import com.careHive.services.NTService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -335,19 +337,31 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public UserProfileDTO getCurrentUser(String token) throws CarehiveException {
-        String email = jwtUtil.extractEmail(token.replace("Bearer ", ""));
+    public UserProfileDTO getCurrentUser(String authorizationHeader)
+            throws CarehiveException {
+
+        String email = extractEmailFromHeader(authorizationHeader);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+                .orElseThrow(() ->
+                        new CarehiveException(
+                                ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                                "User not found"
+                        )
+                );
 
         Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
+                .orElseThrow(() ->
+                        new CarehiveException(
+                                ExceptionCodeEnum.BAD_REQUEST,
+                                "Role not found"
+                        )
+                );
 
-        // Fetch associated services safely
-        List<Services> services = user.getServiceIds() == null ?
-                Collections.emptyList() :
-                user.getServiceIds().stream()
+        List<Services> services =
+                Optional.ofNullable(user.getServiceIds())
+                        .orElse(Collections.emptyList())
+                        .stream()
                         .map(id -> serviceRepository.findById(id).orElse(null))
                         .filter(Objects::nonNull)
                         .toList();
@@ -357,19 +371,64 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
+                .username(user.getUsername())
                 .roleCode(user.getRoleCode().name())
                 .roleName(role.getName())
-                .username(user.getUsername())
-                .isVerified(user.isVerified())
-                .documents(user.getDocuments())
                 .services(services)
+                .documents(user.getDocuments())
                 .caretakerStatus(user.getCaretakerStatus())
+                .isVerified(user.isVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
+    // ------------------------------------------------------------------------
+    // UPDATE CURRENT USER
+    // ------------------------------------------------------------------------
+    @Override
+    public UserProfileDTO updateCurrentUser(
+            String authorizationHeader,
+            UpdateUserProfileDTO updateDTO
+    ) throws CarehiveException {
+
+        String email = extractEmailFromHeader(authorizationHeader);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new CarehiveException(
+                                ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                                "User not found"
+                        )
+                );
+
+        if (updateDTO.getName() != null) {
+            user.setName(updateDTO.getName());
+        }
+
+        if (updateDTO.getCaretakerStatus() != null) {
+            user.setCaretakerStatus(updateDTO.getCaretakerStatus());
+        }
+
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        return getCurrentUser(authorizationHeader);
+    }
+
     private String generateOtp() {
         return String.format("%06d", new Random().nextInt(999999));
     }
+
+    private String extractEmailFromHeader(String authorizationHeader)
+            throws CarehiveException {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.UNAUTHORIZED,
+                    "Missing or invalid Authorization header"
+            );
+        }
+        return jwtUtil.extractEmail(authorizationHeader.substring(7));
+    }
+
 }

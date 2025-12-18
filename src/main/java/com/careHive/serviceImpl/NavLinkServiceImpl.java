@@ -109,65 +109,33 @@ public class NavLinkServiceImpl implements NavLinkService {
         return navLinks.stream().map(this::toResponseDTO).collect(Collectors.toList());
     }
 
-
-    // ⭐⭐⭐ IMPROVED METHOD WITH FILTER + SEARCH + SORT + PAGINATION ⭐⭐⭐
     @Override
-    public Page<NavLinkResponseDTO> getAllNavLinks(Pageable pageable, RoleEnum role, String search, String sortBy, String sortDir) {
-
-        // Defaults & null-safety
-        String effectiveSortBy = (sortBy == null || sortBy.isBlank()) ? "index" : sortBy;
-        String effectiveSortDir = (sortDir == null || sortDir.isBlank()) ? "asc" : sortDir;
-        Sort.Direction direction = effectiveSortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-
-        // Build a pageable that includes the requested sort (so sorting is always applied predictably)
-        Pageable effectivePageable;
-        if (pageable == null) {
-            effectivePageable = PageRequest.of(0, 20, Sort.by(direction, effectiveSortBy));
-        } else {
-            // If incoming pageable already has a sort, prefer explicit sort params (effectiveSortBy/Dir)
-            effectivePageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, effectiveSortBy));
-        }
-
-        Query query = new Query();
-        List<Criteria> criteriaList = new ArrayList<>();
-
-        // Filter: Role
-        if (role != null) {
-            criteriaList.add(Criteria.where("roleCode").is(role));
-        }
-
-        // Filter: Search in name, path, index (escape regex meta-characters)
+    public Page<NavLinkResponseDTO> getAllNavLinks(
+            Pageable pageable, RoleEnum role, String search, String sortBy, String sortDir) {
+        Pageable p = PageRequest.of(
+                pageable == null ? 0 : pageable.getPageNumber(),
+                pageable == null ? 20 : pageable.getPageSize(),
+                Sort.by("desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                        (sortBy == null || sortBy.isBlank()) ? "index" : sortBy)
+        );
+        Query q = new Query().with(p);
+        if (role != null)
+            q.addCriteria(Criteria.where("roleCode").is(role));
         if (search != null && !search.isBlank()) {
-            String escaped = Pattern.quote(search); // safer: treat entire search as literal
-            String regex = ".*" + escaped + ".*";
-            criteriaList.add(
-                    new Criteria().orOperator(
-                            Criteria.where("name").regex(regex, "i"),
-                            Criteria.where("path").regex(regex, "i"),
-                            Criteria.where("index").regex(regex, "i")
-                    )
-            );
+            String r = ".*" + Pattern.quote(search) + ".*";
+            q.addCriteria(new Criteria().orOperator(
+                    Criteria.where("name").regex(r, "i"),
+                    Criteria.where("path").regex(r, "i"),
+                    Criteria.where("index").regex(r, "i")
+            ));
         }
-
-        if (!criteriaList.isEmpty()) {
-            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
-        }
-
-        // Apply sort to query (but final pageable is used for pagination)
-        query.with(Sort.by(direction, effectiveSortBy));
-
-        // Count BEFORE pagination
-        long total = mongoTemplate.count(query, NavLink.class);
-
-        // Apply pagination (page/size + sort). Use effectivePageable so sort is consistent.
-        query.with(effectivePageable);
-
-        List<NavLink> navLinks = mongoTemplate.find(query, NavLink.class);
-        List<NavLinkResponseDTO> dtoList = navLinks.stream().map(this::toResponseDTO).collect(Collectors.toList());
-
-        return new PageImpl<>(dtoList, effectivePageable, total);
+        long total = mongoTemplate.count(q, NavLink.class);
+        return new PageImpl<>(
+                mongoTemplate.find(q, NavLink.class)
+                        .stream().map(this::toResponseDTO).toList(),
+                p, total
+        );
     }
-
 
     @Override
     public NavLinkResponseDTO getNavLink(RoleEnum role, String roleIndex) throws CarehiveException {

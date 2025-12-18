@@ -1,13 +1,17 @@
 package com.careHive.controller;
 
+import com.careHive.dtos.NavLinks.NavLinkResponseDTO;
 import com.careHive.dtos.NotificationTemplate.NTRequestDTO;
 import com.careHive.dtos.NotificationTemplate.NTResponseDTO;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
 import com.careHive.services.NTService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,12 +68,13 @@ public class NTController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseModel<List<NTResponseDTO>>> getAllTemplates() {
-        List<NTResponseDTO> templates = ntService.findAll();
-        return ApiResponse.respond(
-                templates,
-                "Notification templates fetched successfully",
-                "Failed to fetch notification templates"
-        );
+    public ResponseEntity<ResponseModel<Page<NTResponseDTO>>> getAllTemplates(
+            Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir
+    ) {
+        Page<NTResponseDTO> responseDTO = ntService.getAllNotificationTemplates(pageable, search, sortBy, sortDir);
+        return ApiResponse.respond(responseDTO, "Notification Templates fetched successfully", "Failed to fetch Notification Templates");
     }
 }
