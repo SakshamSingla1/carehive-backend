@@ -27,7 +27,9 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .setExpiration(
+                        new Date(System.currentTimeMillis() + accessTokenExpiration)
+                )
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -45,10 +47,14 @@ public class JwtUtil {
     }
 
     private Claims getClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parser()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid JWT token", e);
+        }
     }
 }

@@ -110,11 +110,30 @@ public class AuthController {
     // 🔹 USER PROFILE
     // --------------------------------------------------------
 
-    @Operation(summary = "Get logged-in user profile using JWT token")
     @GetMapping("/me")
-    public ResponseEntity<ResponseModel<UserProfileDTO>> getCurrentUser(@RequestHeader("Authorization") String token)
-            throws CarehiveException {
-        UserProfileDTO userProfile = authService.getCurrentUser(token);
-        return ApiResponse.respond(userProfile, "User profile fetched successfully", "Failed to fetch profile");
+    public ResponseEntity<ResponseModel<UserProfileDTO>> getCurrentUser(
+            @RequestHeader("Authorization") String authorizationHeader
+    ) throws CarehiveException {
+        UserProfileDTO userProfile =
+                authService.getCurrentUser(authorizationHeader);
+        return ApiResponse.respond(
+                userProfile,
+                "User profile fetched successfully",
+                "Failed to fetch profile"
+        );
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<ResponseModel<UserProfileDTO>> updateCurrentUser(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody UpdateUserProfileDTO updateDTO
+    ) throws CarehiveException {
+        UserProfileDTO updatedProfile =
+                authService.updateCurrentUser(authorizationHeader, updateDTO);
+        return ApiResponse.respond(
+                updatedProfile,
+                "User profile updated successfully",
+                "Failed to update user profile"
+        );
     }
 }
