@@ -305,7 +305,7 @@ public class AuthServiceImpl implements AuthService {
                 .phone(user.getPhoneNumber())
                 .email(user.getEmail())
                 .role(role.getName())
-                .token(token)
+                .token("Bearer " + token)
                 .themes(themes)          // ⚡ FRONTEND GETS ALL THEMES
                 .defaultTheme(defaultTheme) // ⚡ Identify the active one
                 .navLinks(navLinks)
