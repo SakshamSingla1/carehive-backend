@@ -49,7 +49,7 @@ public class SecurityConfig {
                 // 🔓 Public endpoints
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/auth/**",
+                                "/api/v1/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -84,6 +84,8 @@ public class SecurityConfig {
                         .toList();
 
         config.setAllowedOrigins(allowedOrigins);
+
+        System.out.println(allowedOrigins);
 
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"

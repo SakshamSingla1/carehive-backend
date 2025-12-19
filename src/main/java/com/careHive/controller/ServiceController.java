@@ -8,6 +8,8 @@ import com.careHive.payload.ResponseModel;
 import com.careHive.services.ServiceService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,8 +27,11 @@ public class ServiceController {
     @PostMapping
     public ResponseEntity<ResponseModel<ServiceResponseDTO>> createService(
             @RequestBody ServiceRequestDTO serviceRequestDTO) throws CarehiveException {
+
         ServiceResponseDTO response = serviceService.createService(serviceRequestDTO);
-        return ApiResponse.respond(response, "Service created successfully", "Failed to create service");
+        return ApiResponse.respond(response,
+                "Service created successfully",
+                "Failed to create service");
     }
 
     // ✅ UPDATE SERVICE
@@ -35,42 +40,64 @@ public class ServiceController {
     public ResponseEntity<ResponseModel<ServiceResponseDTO>> updateService(
             @PathVariable String id,
             @RequestBody ServiceRequestDTO serviceRequestDTO) throws CarehiveException {
+
         ServiceResponseDTO response = serviceService.updateService(id, serviceRequestDTO);
-        return ApiResponse.respond(response, "Service updated successfully", "Failed to update service");
+        return ApiResponse.respond(response,
+                "Service updated successfully",
+                "Failed to update service");
     }
 
     // ✅ DELETE SERVICE
     @Operation(summary = "Delete a service by ID")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseModel<String>> deleteService(@PathVariable String id) throws CarehiveException {
+    public ResponseEntity<ResponseModel<String>> deleteService(
+            @PathVariable String id) throws CarehiveException {
+
         String message = serviceService.deleteService(id);
-        return ApiResponse.respond(message, "Service deleted successfully", "Failed to delete service");
+        return ApiResponse.respond(message,
+                "Service deleted successfully",
+                "Failed to delete service");
     }
 
     // ✅ GET SINGLE SERVICE
     @Operation(summary = "Get service details by ID")
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseModel<ServiceResponseDTO>> getService(@PathVariable String id)
-            throws CarehiveException {
+    public ResponseEntity<ResponseModel<ServiceResponseDTO>> getService(
+            @PathVariable String id) throws CarehiveException {
+
         ServiceResponseDTO response = serviceService.getService(id);
-        return ApiResponse.respond(response, "Service fetched successfully", "Failed to fetch service");
+        return ApiResponse.respond(response,
+                "Service fetched successfully",
+                "Failed to fetch service");
     }
 
-    // ✅ GET ALL SERVICES
-    @Operation(summary = "Get list of all services")
+    // ✅ GET ALL SERVICES (Pagination + Search + Sort)
+    @Operation(summary = "Get all services with pagination, search and sorting")
     @GetMapping
-    public ResponseEntity<ResponseModel<List<ServiceResponseDTO>>> getAllServices() throws CarehiveException {
-        List<ServiceResponseDTO> response = serviceService.getAllServices();
-        return ApiResponse.respond(response, "All services fetched successfully", "Failed to fetch services");
+    public ResponseEntity<ResponseModel<Page<ServiceResponseDTO>>> getAllServices(
+            Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir) throws CarehiveException {
+
+        Page<ServiceResponseDTO> response =
+                serviceService.getAllServices(pageable, search, sortBy, sortDir);
+
+        return ApiResponse.respond(response,
+                "Services fetched successfully",
+                "Failed to fetch services");
     }
 
+    // ✅ ASSIGN SERVICES TO CARETAKER
     @Operation(summary = "Assign one or more services to a caretaker")
     @PutMapping("/assign/{caretakerId}")
     public ResponseEntity<ResponseModel<String>> assignServicesToCaretaker(
             @PathVariable String caretakerId,
             @RequestBody List<String> serviceIds) throws CarehiveException {
-        serviceService.assignServicesToCaretaker(caretakerId,serviceIds);
+
+        serviceService.assignServicesToCaretaker(caretakerId, serviceIds);
         return ApiResponse.respond("Services assigned successfully",
-                "Services assigned successfully", "Failed to assign services");
+                "Services assigned successfully",
+                "Failed to assign services");
     }
 }

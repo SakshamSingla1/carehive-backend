@@ -11,79 +11,78 @@ import com.careHive.repositories.ServiceRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.NTService;
 import com.careHive.services.ServiceService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 @Service
-@RequiredArgsConstructor
 public class ServiceServiceImpl implements ServiceService {
 
-    private final ServiceRepository serviceRepository;
-    private final UserRepository userRepository;
-    private final NTService ntService;
+    @Autowired
+    private ServiceRepository serviceRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private NTService ntService;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     // ✅ CREATE SERVICE
     @Override
-    public ServiceResponseDTO createService(ServiceRequestDTO serviceRequestDTO) throws CarehiveException {
-        if (serviceRepository.findByName(serviceRequestDTO.getName()) != null) {
-            throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_SERVICE,
-                    "Service already exists with the same name");
+    public ServiceResponseDTO createService(ServiceRequestDTO dto) throws CarehiveException {
+        if (serviceRepository.findByName(dto.getName()) != null) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.DUPLICATE_SERVICE,
+                    "Service already exists with the same name"
+            );
         }
 
-        // Save the service
         Services service = Services.builder()
-                .name(serviceRequestDTO.getName())
-                .description(serviceRequestDTO.getDescription())
-                .pricePerHour(serviceRequestDTO.getPricePerHour())
-                .status(serviceRequestDTO.getStatus())
+                .name(dto.getName())
+                .description(dto.getDescription())
+                .pricePerHour(dto.getPricePerHour())
+                .status(dto.getStatus())
                 .build();
 
-        Services savedService = serviceRepository.save(service);
+        serviceRepository.save(service);
 
-        // Notify all caretakers
-        List<User> caretakers = userRepository.findAllByRoleCode(RoleEnum.CARETAKER.name());
-
-        for (User caretaker : caretakers) {
-            Map<String, Object> variables = new HashMap<>();
-            variables.put("caretakerName", caretaker.getName());
-            variables.put("serviceName", savedService.getName());
-            variables.put("description", savedService.getDescription());
-            variables.put("pricePerHour", savedService.getPricePerHour());
-            variables.put("isActive", savedService.getStatus() ? "Active" : "Inactive");
-            variables.put("dashboardLink", "https://app.carehive.com/dashboard");
-
-            // ✅ Send dynamic notification
-            ntService.sendNotification("NEW-SERVICE-NOTIFICATION-CARETAKER", variables, caretaker.getEmail());
-        }
-
-        return mapToResponseDTO(savedService);
+        notifyCaretakers(service);
+        return mapToResponseDTO(service);
     }
 
     // ✅ UPDATE SERVICE
     @Override
-    public ServiceResponseDTO updateService(String id, ServiceRequestDTO serviceRequestDTO) throws CarehiveException {
-        Services existingService = serviceRepository.findById(id)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
+    public ServiceResponseDTO updateService(String id, ServiceRequestDTO dto) throws CarehiveException {
+        Services service = serviceRepository.findById(id)
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
 
-        existingService.setName(serviceRequestDTO.getName());
-        existingService.setDescription(serviceRequestDTO.getDescription());
-        existingService.setPricePerHour(serviceRequestDTO.getPricePerHour());
-        existingService.setStatus(serviceRequestDTO.getStatus());
+        service.setName(dto.getName());
+        service.setDescription(dto.getDescription());
+        service.setPricePerHour(dto.getPricePerHour());
+        service.setStatus(dto.getStatus());
 
-        Services updatedService = serviceRepository.save(existingService);
-        return mapToResponseDTO(updatedService);
+        serviceRepository.save(service);
+        return mapToResponseDTO(service);
     }
 
     // ✅ DELETE SERVICE
     @Override
     public String deleteService(String id) throws CarehiveException {
         Services service = serviceRepository.findById(id)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
 
         serviceRepository.delete(service);
         return "Service deleted successfully";
@@ -93,31 +92,87 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     public ServiceResponseDTO getService(String id) throws CarehiveException {
         Services service = serviceRepository.findById(id)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
 
         return mapToResponseDTO(service);
     }
 
-    // ✅ GET ALL SERVICES
+    // ✅ GET ALL SERVICES (Same Pattern as NTServiceImpl)
     @Override
-    public List<ServiceResponseDTO> getAllServices() {
-        List<Services> services = serviceRepository.findAll();
-        return services.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+    public Page<ServiceResponseDTO> getAllServices(
+            Pageable pageable, String search, String sortBy, String sortDir) {
+
+        Pageable p = PageRequest.of(
+                pageable == null ? 0 : pageable.getPageNumber(),
+                pageable == null ? 20 : pageable.getPageSize(),
+                Sort.by(
+                        "desc".equalsIgnoreCase(sortDir)
+                                ? Sort.Direction.DESC
+                                : Sort.Direction.ASC,
+                        (sortBy == null || sortBy.isBlank()) ? "name" : sortBy
+                )
+        );
+
+        Query q = new Query().with(p);
+
+        if (search != null && !search.isBlank()) {
+            String regex = ".*" + Pattern.quote(search) + ".*";
+            q.addCriteria(
+                    Criteria.where("name").regex(regex, "i")
+            );
+        }
+
+        long total = mongoTemplate.count(q, Services.class);
+
+        return new PageImpl<>(
+                mongoTemplate.find(q, Services.class)
+                        .stream()
+                        .map(this::mapToResponseDTO)
+                        .toList(),
+                p,
+                total
+        );
     }
 
     // ✅ ASSIGN SERVICES TO CARETAKER
     @Override
     public String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException {
-        User caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+        User caretaker = userRepository
+                .findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+
         caretaker.setServiceIds(serviceIds);
         userRepository.save(caretaker);
         return "Services assigned successfully";
     }
 
-    // 🔹 Helper Method
+    // 🔔 NOTIFY CARETAKERS
+    private void notifyCaretakers(Services service) {
+        userRepository.findAllByRoleCode(RoleEnum.CARETAKER.name())
+                .forEach(caretaker -> {
+                    Map<String, Object> vars = new HashMap<>();
+                    vars.put("caretakerName", caretaker.getName());
+                    vars.put("serviceName", service.getName());
+                    vars.put("description", service.getDescription());
+                    vars.put("pricePerHour", service.getPricePerHour());
+                    vars.put("isActive", service.getStatus() ? "Active" : "Inactive");
+                    vars.put("dashboardLink", "https://app.carehive.com/dashboard");
+
+                    try {
+                        ntService.sendNotification(
+                                "NEW-SERVICE-NOTIFICATION-CARETAKER",
+                                vars,
+                                caretaker.getEmail()
+                        );
+                    } catch (CarehiveException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
+    // 🔹 MAPPER
     private ServiceResponseDTO mapToResponseDTO(Services service) {
         return ServiceResponseDTO.builder()
                 .id(service.getId())

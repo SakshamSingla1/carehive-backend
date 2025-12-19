@@ -99,9 +99,7 @@ public class NTServiceImpl implements NTService {
         if (search != null && !search.isBlank()) {
             String r = ".*" + Pattern.quote(search) + ".*";
             q.addCriteria(new Criteria().orOperator(
-                    Criteria.where("name").regex(r, "i"),
-                    Criteria.where("path").regex(r, "i"),
-                    Criteria.where("index").regex(r, "i")
+                    Criteria.where("name").regex(r, "i")
             ));
         }
         long total = mongoTemplate.count(q, NotificationTemplate.class);
