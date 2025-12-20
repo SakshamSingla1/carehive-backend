@@ -290,6 +290,8 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phone(user.getPhoneNumber())
                 .role(role.getName())
+                .verified(user.getVerified())
+                .caretakerStatus(user.getCaretakerStatus())
                 .token("Bearer " + token)
                 .themes(themes)
                 .defaultTheme(defaultTheme)
@@ -359,6 +361,12 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
         if (dto.getName() != null) {
             user.setName(dto.getName());
+        }
+        if (dto.getUsername() != null) {
+            user.setUsername(dto.getUsername());
+        }
+        if (dto.getPhoneNumber() != null) {
+            user.setPhoneNumber(dto.getPhoneNumber());
         }
         if (dto.getCaretakerStatus() != null) {
             user.setCaretakerStatus(dto.getCaretakerStatus());

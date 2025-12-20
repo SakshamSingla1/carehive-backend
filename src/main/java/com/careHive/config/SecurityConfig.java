@@ -1,9 +1,11 @@
 package com.careHive.config;
 
+import com.careHive.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,28 +28,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // ✅ Read from application.properties
+    private final JwtAuthFilter jwtAuthenticationFilter;
+
     @Value("${app.frontend.url:http://localhost:3000,http://localhost:5173}")
     private String frontendUrls;
 
-    // 🔐 Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔐 Main Security Filter Chain
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // 🔥 CORS must be wired here
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // ❌ Disable CSRF for APIs
                 .csrf(csrf -> csrf.disable())
-
-                // 🔓 Public endpoints
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/**",
@@ -55,15 +55,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.yaml"
                         ).permitAll()
-                        .anyRequest().authenticated()
                 )
-
-                // 🧾 Stateless session
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
                 )
-
-                // 🚫 Custom unauthorized response
                 .exceptionHandling(ex ->
                         ex.authenticationEntryPoint(authenticationEntryPoint())
                 );
@@ -71,29 +67,21 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 🔥 CORS CONFIG (CORRECT & FLEXIBLE)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        // Convert CSV property to List
         List<String> allowedOrigins =
                 Arrays.stream(frontendUrls.split(","))
                         .map(String::trim)
                         .toList();
 
         config.setAllowedOrigins(allowedOrigins);
-
-        System.out.println(allowedOrigins);
-
         config.setAllowedMethods(List.of(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
-
         config.setAllowedHeaders(List.of("*"));
-
-        // Required for cookies / Authorization headers
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
@@ -104,21 +92,24 @@ public class SecurityConfig {
         return source;
     }
 
-    // 🔑 Authentication manager
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+            AuthenticationConfiguration config
+    ) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // 🚫 Unauthorized handler
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException) -> {
-            response.setContentType("application/json");
             response.setStatus(401);
-            response.getWriter()
-                    .write("{\"error\": \"Unauthorized\"}");
+            response.setContentType("application/json");
+            response.getWriter().write("""
+                {
+                  "error": "Unauthorized",
+                  "message": "Authentication is required to access this resource"
+                }
+            """);
         };
     }
 }
