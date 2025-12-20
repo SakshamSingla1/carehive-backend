@@ -99,10 +99,12 @@ public class AuthController {
     }
 
     @Operation(summary = "Change password (for logged-in user)")
-    @PostMapping("/change-password")
-    public ResponseEntity<ResponseModel<String>> changePassword(@RequestBody ChangePasswordDTO requestDTO)
+    @PutMapping("/change-password")
+    public ResponseEntity<ResponseModel<String>> changePassword(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody ChangePasswordDTO requestDTO)
             throws CarehiveException {
-        String message = authService.changePassword(requestDTO);
+        String message = authService.changePassword(authorizationHeader,requestDTO);
         return ApiResponse.respond(message, "Password changed successfully", "Failed to change password");
     }
 

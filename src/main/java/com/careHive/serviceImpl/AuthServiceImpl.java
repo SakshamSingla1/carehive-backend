@@ -5,6 +5,7 @@ import com.careHive.dtos.Otp.OtpRequestDTO;
 import com.careHive.dtos.Password.ChangePasswordDTO;
 import com.careHive.dtos.Password.PasswordResetConfirmDTO;
 import com.careHive.dtos.Password.PasswordResetRequestDTO;
+import com.careHive.dtos.Auth.UpdateUserProfileDTO;
 import com.careHive.dtos.User.UserProfileDTO;
 import com.careHive.entities.*;
 import com.careHive.enums.ExceptionCodeEnum;
@@ -35,7 +36,6 @@ public class AuthServiceImpl implements AuthService {
     private final OtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final ServiceRepository serviceRepository;
     private final NTService ntService;
     private final ColorThemeRepository colorThemeRepository;
     private final NavLinkRepository navLinkRepository;
@@ -43,17 +43,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
 
-        if (userRepository.findByEmail(registerDTO.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(registerDTO.getEmail()).isPresent())
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_EMAIL, "User with same email already exists");
-        }
 
-        if (userRepository.findByUsername(registerDTO.getUsername()).isPresent()) {
+        if (userRepository.findByUsername(registerDTO.getUsername()).isPresent())
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same username already exists");
-        }
 
-        if (userRepository.findByPhoneNumber(registerDTO.getPhoneNumber()).isPresent()) {
+        if (userRepository.findByPhoneNumber(registerDTO.getPhoneNumber()).isPresent())
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same phone number already exists");
-        }
 
         Role role = roleRepository.findByEnumCode(registerDTO.getRoleCode().name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
@@ -73,13 +70,14 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        String otp = generateOtp();
+        String rawOtp = generateRawOtp();
+        String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(user.getEmail());
         otpRepository.save(
                 OtpStore.builder()
                         .email(user.getEmail())
-                        .otp(otp)
+                        .otp(encodedOtp)
                         .createdAt(LocalDateTime.now())
                         .expiresAt(LocalDateTime.now().plusMinutes(10))
                         .build()
@@ -87,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
 
         ntService.sendNotification(
                 "OTP-VERIFICATION",
-                Map.of("name", user.getName(), "otp", otp),
+                Map.of("name", user.getName(), "otp", rawOtp),
                 user.getEmail()
         );
 
@@ -98,25 +96,26 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phoneNumber(user.getPhoneNumber())
                 .roleName(role.getName())
-                .createdAt(user.getCreatedAt())
                 .verified(user.getVerified())
+                .createdAt(user.getCreatedAt())
                 .message("User registered successfully. Please verify OTP sent to your email.")
                 .build();
     }
 
     @Override
-    public String sendOtp(PhoneOtpRequestDTO requestDTO) throws CarehiveException {
+    public String sendOtp(PhoneOtpRequestDTO dto) throws CarehiveException {
 
-        User user = userRepository.findByPhoneNumber(requestDTO.getPhoneNumber())
+        User user = userRepository.findByPhoneNumber(dto.getPhoneNumber())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        String otp = generateOtp();
+        String rawOtp = generateRawOtp();
+        String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(user.getEmail());
         otpRepository.save(
                 OtpStore.builder()
                         .email(user.getEmail())
-                        .otp(otp)
+                        .otp(encodedOtp)
                         .createdAt(LocalDateTime.now())
                         .expiresAt(LocalDateTime.now().plusMinutes(10))
                         .build()
@@ -124,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
 
         ntService.sendNotification(
                 "OTP-VERIFICATION",
-                Map.of("name", user.getName(), "otp", otp),
+                Map.of("name", user.getName(), "otp", rawOtp),
                 user.getEmail()
         );
 
@@ -142,7 +141,7 @@ public class AuthServiceImpl implements AuthService {
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "OTP expired");
         }
 
-        if (!otpStore.getOtp().equals(dto.getOtp())) {
+        if (!passwordEncoder.matches(dto.getOtp(), otpStore.getOtp())) {
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid OTP");
         }
 
@@ -151,8 +150,8 @@ public class AuthServiceImpl implements AuthService {
 
         user.setVerified(VerificationStatusEnum.VERIFIED);
         user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
 
+        userRepository.save(user);
         otpRepository.deleteByEmail(dto.getEmail());
 
         return "OTP verified successfully";
@@ -164,13 +163,14 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        String otp = generateOtp();
+        String rawOtp = generateRawOtp();
+        String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(email);
         otpRepository.save(
                 OtpStore.builder()
                         .email(email)
-                        .otp(otp)
+                        .otp(encodedOtp)
                         .createdAt(LocalDateTime.now())
                         .expiresAt(LocalDateTime.now().plusMinutes(10))
                         .build()
@@ -178,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
 
         ntService.sendNotification(
                 "OTP-VERIFICATION",
-                Map.of("name", user.getName(), "otp", otp),
+                Map.of("name", user.getName(), "otp", rawOtp),
                 user.getEmail()
         );
 
@@ -204,36 +204,11 @@ public class AuthServiceImpl implements AuthService {
 
         ntService.sendNotification(
                 "FORGOT-PASSWORD-TOKEN",
-                Map.of(
-                        "name", user.getName(),
-                        "resetLink", frontendUrl + "?token=" + token
-                ),
+                Map.of("name", user.getName(), "resetLink", frontendUrl + "?token=" + token),
                 user.getEmail()
         );
 
         return "Password reset link sent";
-    }
-
-    @Override
-    public String resetPassword(PasswordResetConfirmDTO dto) throws CarehiveException {
-
-        PasswordResetToken token = passwordResetTokenRepository.findByToken(dto.getToken())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid token"));
-
-        if (token.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Token expired");
-        }
-
-        User user = userRepository.findByEmail(token.getEmail())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
-
-        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
-        user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
-
-        passwordResetTokenRepository.delete(token);
-
-        return "Password reset successful";
     }
 
     @Override
@@ -242,11 +217,34 @@ public class AuthServiceImpl implements AuthService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Token not found"));
 
-        if (resetToken.getExpiryTime().isBefore(LocalDateTime.now())) {
+        if (resetToken.getExpiryTime().isBefore(LocalDateTime.now()))
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Token expired");
-        }
 
         return "Token is valid";
+    }
+
+    @Override
+    public String resetPassword(PasswordResetConfirmDTO dto) throws CarehiveException {
+
+        PasswordResetToken token = passwordResetTokenRepository.findByToken(dto.getToken())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid token"));
+
+        if (token.getExpiryTime().isBefore(LocalDateTime.now()))
+            throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Token expired");
+
+        User user = userRepository.findByEmail(token.getEmail())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword()))
+            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "New password must be different from old password");
+
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+        passwordResetTokenRepository.delete(token);
+
+        return "Password reset successful";
     }
 
     @Override
@@ -264,13 +262,11 @@ public class AuthServiceImpl implements AuthService {
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Invalid login request");
         }
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid password");
-        }
 
-        if (user.getVerified() != VerificationStatusEnum.VERIFIED) {
+        if (user.getVerified() != VerificationStatusEnum.VERIFIED)
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Account not verified");
-        }
 
         String token = jwtUtil.generateAccessToken(user.getEmail());
 
@@ -300,21 +296,25 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String changePassword(ChangePasswordDTO dto) throws CarehiveException {
+    public String changePassword(String authorizationHeader, ChangePasswordDTO dto) throws CarehiveException {
 
-        User user = userRepository.findById(dto.getUserId())
+        String email = extractEmailFromHeader(authorizationHeader);
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
-            throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Incorrect old password");
-        }
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword()))
+            throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Incorrect current password");
 
-        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword()))
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Passwords do not match");
-        }
+
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword()))
+            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "New password must be different from old password");
 
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         user.setUpdatedAt(LocalDateTime.now());
+
         userRepository.save(user);
 
         return "Password changed successfully";
@@ -330,13 +330,6 @@ public class AuthServiceImpl implements AuthService {
 
         Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
-
-        List<Services> services = Optional.ofNullable(user.getServiceIds())
-                .orElse(Collections.emptyList())
-                .stream()
-                .map(id -> serviceRepository.findById(id).orElse(null))
-                .filter(Objects::nonNull)
-                .toList();
 
         return UserProfileDTO.builder()
                 .id(user.getId())
@@ -356,34 +349,30 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserProfileDTO updateCurrentUser(String authorizationHeader, UpdateUserProfileDTO dto)
             throws CarehiveException {
+
         String email = extractEmailFromHeader(authorizationHeader);
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
-        if (dto.getName() != null) {
-            user.setName(dto.getName());
-        }
-        if (dto.getUsername() != null) {
-            user.setUsername(dto.getUsername());
-        }
-        if (dto.getPhoneNumber() != null) {
-            user.setPhoneNumber(dto.getPhoneNumber());
-        }
-        if (dto.getCaretakerStatus() != null) {
-            user.setCaretakerStatus(dto.getCaretakerStatus());
-        }
+
+        if (dto.getName() != null) user.setName(dto.getName());
+        if (dto.getUsername() != null) user.setUsername(dto.getUsername());
+        if (dto.getPhoneNumber() != null) user.setPhoneNumber(dto.getPhoneNumber());
+        if (dto.getCaretakerStatus() != null) user.setCaretakerStatus(dto.getCaretakerStatus());
+
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+
         return getCurrentUser(authorizationHeader);
     }
 
-    private String generateOtp() {
+    private String generateRawOtp() {
         return String.format("%06d", new Random().nextInt(999999));
     }
 
     private String extractEmailFromHeader(String header) throws CarehiveException {
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (header == null || !header.startsWith("Bearer "))
             throw new CarehiveException(ExceptionCodeEnum.UNAUTHORIZED, "Invalid authorization header");
-        }
         return jwtUtil.extractEmail(header.substring(7));
     }
 }
