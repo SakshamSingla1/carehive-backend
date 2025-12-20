@@ -11,7 +11,5 @@ public class UpdateUserProfileDTO {
     private String username;
     private String email;
     private String phoneNumber;
-    private List<String> serviceIds;
-    private List<String> documentIds;
     private VerificationStatusEnum caretakerStatus;
 }

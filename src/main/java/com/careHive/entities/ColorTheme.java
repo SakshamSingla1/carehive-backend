@@ -24,5 +24,4 @@ public class ColorTheme {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;
-
 }

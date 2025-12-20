@@ -29,7 +29,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         long totalElders = userRepository.countByRoleCode(RoleEnum.ELDER.name());
         long totalCaretakers = userRepository.countByRoleCode(RoleEnum.CARETAKER.name());
         long totalFamilyMembers = userRepository.countByRoleCode(RoleEnum.FAMILY_MEMBER.name());
-        long verifiedCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.APPROVED);
+        long verifiedCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.VERIFIED);
         long pendingCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.PENDING);
 
         long totalServices = serviceRepository.count();

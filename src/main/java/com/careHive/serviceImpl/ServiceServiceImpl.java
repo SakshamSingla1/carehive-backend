@@ -150,6 +150,7 @@ public class ServiceServiceImpl implements ServiceService {
                                 .serviceId(service.getId())
                                 .createdAt(LocalDateTime.now())
                                 .updatedAt(LocalDateTime.now())
+                                .status(requestDTO.getStatus())
                                 .build()
                 );
                 response.add(
@@ -159,6 +160,7 @@ public class ServiceServiceImpl implements ServiceService {
                                 .caretakerName(caretaker.getName())
                                 .serviceId(service.getId())
                                 .serviceName(service.getName())
+                                .status(service.getStatus())
                                 .createdAt(mapping.getCreatedAt())
                                 .updatedAt(mapping.getUpdatedAt())
                                 .build()
@@ -177,7 +179,7 @@ public class ServiceServiceImpl implements ServiceService {
                     vars.put("serviceName", service.getName());
                     vars.put("description", service.getDescription());
                     vars.put("pricePerHour", service.getPricePerHour());
-                    vars.put("isActive", service.getStatus() ? "Active" : "Inactive");
+                    vars.put("isActive", service.getStatus());
                     vars.put("dashboardLink", "https://app.carehive.com/dashboard");
 
                     try {
