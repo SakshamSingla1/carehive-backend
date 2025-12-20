@@ -1,12 +1,16 @@
 package com.careHive.serviceImpl;
 
+import com.careHive.dtos.CaretakerServices.CSRequestDTO;
+import com.careHive.dtos.CaretakerServices.CSResponseDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
+import com.careHive.entities.CaretakerServices;
 import com.careHive.entities.Services;
 import com.careHive.entities.User;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
+import com.careHive.repositories.CaretakerServicesRepository;
 import com.careHive.repositories.ServiceRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.NTService;
@@ -18,6 +22,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +44,9 @@ public class ServiceServiceImpl implements ServiceService {
     @Autowired
     private MongoTemplate mongoTemplate;
 
-    // ✅ CREATE SERVICE
+    @Autowired
+    private CaretakerServicesRepository caretakerServicesRepository;
+
     @Override
     public ServiceResponseDTO createService(ServiceRequestDTO dto) throws CarehiveException {
         if (serviceRepository.findByName(dto.getName()) != null) {
@@ -47,21 +55,17 @@ public class ServiceServiceImpl implements ServiceService {
                     "Service already exists with the same name"
             );
         }
-
         Services service = Services.builder()
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .pricePerHour(dto.getPricePerHour())
                 .status(dto.getStatus())
                 .build();
-
         serviceRepository.save(service);
-
         notifyCaretakers(service);
         return mapToResponseDTO(service);
     }
 
-    // ✅ UPDATE SERVICE
     @Override
     public ServiceResponseDTO updateService(String id, ServiceRequestDTO dto) throws CarehiveException {
         Services service = serviceRepository.findById(id)
@@ -72,37 +76,30 @@ public class ServiceServiceImpl implements ServiceService {
         service.setDescription(dto.getDescription());
         service.setPricePerHour(dto.getPricePerHour());
         service.setStatus(dto.getStatus());
-
         serviceRepository.save(service);
         return mapToResponseDTO(service);
     }
 
-    // ✅ DELETE SERVICE
     @Override
     public String deleteService(String id) throws CarehiveException {
         Services service = serviceRepository.findById(id)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
-
         serviceRepository.delete(service);
         return "Service deleted successfully";
     }
 
-    // ✅ GET SERVICE BY ID
     @Override
     public ServiceResponseDTO getService(String id) throws CarehiveException {
         Services service = serviceRepository.findById(id)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
-
         return mapToResponseDTO(service);
     }
 
-    // ✅ GET ALL SERVICES (Same Pattern as NTServiceImpl)
     @Override
     public Page<ServiceResponseDTO> getAllServices(
             Pageable pageable, String search, String sortBy, String sortDir) {
-
         Pageable p = PageRequest.of(
                 pageable == null ? 0 : pageable.getPageNumber(),
                 pageable == null ? 20 : pageable.getPageSize(),
@@ -113,18 +110,14 @@ public class ServiceServiceImpl implements ServiceService {
                         (sortBy == null || sortBy.isBlank()) ? "name" : sortBy
                 )
         );
-
         Query q = new Query().with(p);
-
         if (search != null && !search.isBlank()) {
             String regex = ".*" + Pattern.quote(search) + ".*";
             q.addCriteria(
                     Criteria.where("name").regex(regex, "i")
             );
         }
-
         long total = mongoTemplate.count(q, Services.class);
-
         return new PageImpl<>(
                 mongoTemplate.find(q, Services.class)
                         .stream()
@@ -135,17 +128,44 @@ public class ServiceServiceImpl implements ServiceService {
         );
     }
 
-    // ✅ ASSIGN SERVICES TO CARETAKER
     @Override
-    public String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException {
-        User caretaker = userRepository
-                .findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
-                .orElseThrow(() -> new CarehiveException(
-                        ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
-
-        caretaker.setServiceIds(serviceIds);
-        userRepository.save(caretaker);
-        return "Services assigned successfully";
+    public List<CSResponseDTO> assignServicesToCaretaker(String caretakerId, CSRequestDTO requestDTO) throws CarehiveException {
+        if (requestDTO == null || requestDTO.getServiceIds() == null || requestDTO.getServiceIds().isEmpty()) {
+            throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "ServiceIds cannot be null or empty");
+        }
+        User caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not present"));
+        List<Services> services =
+                serviceRepository.findAllById(requestDTO.getServiceIds());
+        if (services.size() != requestDTO.getServiceIds().size()) {
+            throw new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "One or more services not found");
+        }
+        List<CSResponseDTO> response = new ArrayList<>();
+        for (Services service : services) {
+            boolean exists = caretakerServicesRepository.findByCaretakerIdAndServiceId(caretakerId, service.getId()).isPresent();
+            if (!exists) {
+                CaretakerServices mapping = caretakerServicesRepository.save(
+                        CaretakerServices.builder()
+                                .caretakerId(caretakerId)
+                                .serviceId(service.getId())
+                                .createdAt(LocalDateTime.now())
+                                .updatedAt(LocalDateTime.now())
+                                .build()
+                );
+                response.add(
+                        CSResponseDTO.builder()
+                                .id(mapping.getId())
+                                .caretakerId(caretakerId)
+                                .caretakerName(caretaker.getName())
+                                .serviceId(service.getId())
+                                .serviceName(service.getName())
+                                .createdAt(mapping.getCreatedAt())
+                                .updatedAt(mapping.getUpdatedAt())
+                                .build()
+                );
+            }
+        }
+        return response;
     }
 
     // 🔔 NOTIFY CARETAKERS
