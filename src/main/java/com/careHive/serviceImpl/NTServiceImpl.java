@@ -7,6 +7,7 @@ import com.careHive.entities.NavLink;
 import com.careHive.entities.NotificationTemplate;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.NTRepository;
 import com.careHive.services.EmailService;
@@ -45,7 +46,7 @@ public class NTServiceImpl implements NTService {
                 .subject(ntRequestDTO.getSubject())
                 .body(ntRequestDTO.getBody())
                 .type(ntRequestDTO.getType())
-                .active(true)
+                .active(StatusEnum.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -61,7 +62,7 @@ public class NTServiceImpl implements NTService {
 
         existingTemplate.setSubject(ntRequestDTO.getSubject());
         existingTemplate.setBody(ntRequestDTO.getBody());
-        existingTemplate.setActive(ntRequestDTO.isActive());
+        existingTemplate.setActive(ntRequestDTO.getActive());
         existingTemplate.setUpdatedAt(LocalDateTime.now());
 
         ntRepository.save(existingTemplate);
@@ -131,7 +132,7 @@ public class NTServiceImpl implements NTService {
                 .subject(template.getSubject())
                 .body(template.getBody())
                 .type(template.getType())
-                .active(template.isActive())
+                .active(template.getActive())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())
                 .build();

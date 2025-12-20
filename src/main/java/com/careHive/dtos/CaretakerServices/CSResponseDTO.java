@@ -1,5 +1,6 @@
 package com.careHive.dtos.CaretakerServices;
 
+import com.careHive.enums.StatusEnum;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class CSResponseDTO {
     private String caretakerName;
     private String serviceId;
     private String serviceName;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

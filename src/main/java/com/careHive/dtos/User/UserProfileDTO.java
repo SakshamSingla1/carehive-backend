@@ -19,10 +19,8 @@ public class UserProfileDTO {
     private String roleCode;
     private String roleName;
     private String phoneNumber;
-    private boolean isVerified;
-    private List<Services> services;
+    private VerificationStatusEnum verified;
     private VerificationStatusEnum caretakerStatus;
-    private List<DocumentInfo> documents;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

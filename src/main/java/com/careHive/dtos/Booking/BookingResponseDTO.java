@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 public class BookingResponseDTO {
     private String id;
+    private String bookingCode;
     private String serviceId;
     private String serviceName;
     private String elderId;

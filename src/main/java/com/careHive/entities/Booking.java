@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class Booking {
     @Id
     private String id;
+    private String bookingCode;
     private String serviceId;
     private String elderId;
     private String caretakerId;
@@ -28,5 +29,8 @@ public class Booking {
     private LocalDateTime updatedAt;
 
     private double durationHours;
+    private double pricePerHour;
+    private double totalAmount;
+
     private BookingStatusEnum status;
 }

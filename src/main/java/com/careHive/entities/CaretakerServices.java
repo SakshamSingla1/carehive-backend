@@ -1,5 +1,6 @@
 package com.careHive.entities;
 
+import com.careHive.enums.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class CaretakerServices {
     private String id;
     private String caretakerId;
     private String serviceId;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

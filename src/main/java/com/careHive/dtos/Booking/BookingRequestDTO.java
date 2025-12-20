@@ -14,5 +14,6 @@ public class BookingRequestDTO {
     private String elderId;
     private String caretakerId;
     private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private BookingStatusEnum status;
 }

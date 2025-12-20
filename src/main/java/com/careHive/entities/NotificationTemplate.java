@@ -1,6 +1,7 @@
 package com.careHive.entities;
 
 import com.careHive.enums.NotificationTypeEnum;
+import com.careHive.enums.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +23,7 @@ public class NotificationTemplate {
     private String subject;
     private String body;
     private NotificationTypeEnum type;
-    private boolean active;
+    private StatusEnum active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

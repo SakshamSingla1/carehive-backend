@@ -26,7 +26,7 @@ public class User {
     private String password;
     private RoleEnum roleCode;
     private String phoneNumber;
-    private boolean isVerified;
+    private VerificationStatusEnum verified;
     private List<String> serviceIds; // List of service references
     private VerificationStatusEnum caretakerStatus; // Admin verification
     private List<DocumentInfo> documents; // <-- multiple uploaded documents
