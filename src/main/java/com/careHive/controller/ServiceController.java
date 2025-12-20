@@ -1,5 +1,7 @@
 package com.careHive.controller;
 
+import com.careHive.dtos.CaretakerServices.CSRequestDTO;
+import com.careHive.dtos.CaretakerServices.CSResponseDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.exceptions.CarehiveException;
@@ -91,12 +93,12 @@ public class ServiceController {
     // ✅ ASSIGN SERVICES TO CARETAKER
     @Operation(summary = "Assign one or more services to a caretaker")
     @PutMapping("/assign/{caretakerId}")
-    public ResponseEntity<ResponseModel<String>> assignServicesToCaretaker(
+    public ResponseEntity<ResponseModel<List<CSResponseDTO>>> assignServicesToCaretaker(
             @PathVariable String caretakerId,
-            @RequestBody List<String> serviceIds) throws CarehiveException {
+            @RequestBody CSRequestDTO requestDTO) throws CarehiveException {
 
-        serviceService.assignServicesToCaretaker(caretakerId, serviceIds);
-        return ApiResponse.respond("Services assigned successfully",
+        List<CSResponseDTO> responseDTOS = serviceService.assignServicesToCaretaker(caretakerId,requestDTO);
+        return ApiResponse.respond(responseDTOS,
                 "Services assigned successfully",
                 "Failed to assign services");
     }

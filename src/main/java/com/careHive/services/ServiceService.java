@@ -1,5 +1,7 @@
 package com.careHive.services;
 
+import com.careHive.dtos.CaretakerServices.CSRequestDTO;
+import com.careHive.dtos.CaretakerServices.CSResponseDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.exceptions.CarehiveException;
@@ -14,5 +16,5 @@ public interface ServiceService {
     String deleteService(String id) throws CarehiveException;
     ServiceResponseDTO getService(String id) throws CarehiveException;
     Page<ServiceResponseDTO> getAllServices(Pageable pageable, String search, String sortBy, String sortDir) throws CarehiveException;
-    String assignServicesToCaretaker(String caretakerId, List<String> serviceIds) throws CarehiveException;
+    List<CSResponseDTO> assignServicesToCaretaker(String caretakerId,CSRequestDTO requestDTO) throws CarehiveException;
 }
