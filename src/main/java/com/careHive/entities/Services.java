@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,4 +22,6 @@ public class Services {
     private String description;
     private double pricePerHour;
     private StatusEnum status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

@@ -60,6 +60,8 @@ public class ServiceServiceImpl implements ServiceService {
                 .description(dto.getDescription())
                 .pricePerHour(dto.getPricePerHour())
                 .status(dto.getStatus())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
         serviceRepository.save(service);
         notifyCaretakers(service);
@@ -76,6 +78,7 @@ public class ServiceServiceImpl implements ServiceService {
         service.setDescription(dto.getDescription());
         service.setPricePerHour(dto.getPricePerHour());
         service.setStatus(dto.getStatus());
+        service.setUpdatedAt(LocalDateTime.now());
         serviceRepository.save(service);
         return mapToResponseDTO(service);
     }
@@ -202,6 +205,8 @@ public class ServiceServiceImpl implements ServiceService {
                 .description(service.getDescription())
                 .pricePerHour(service.getPricePerHour())
                 .status(service.getStatus())
+                .createdAt(service.getCreatedAt())
+                .updatedAt(service.getUpdatedAt())
                 .build();
     }
 }
