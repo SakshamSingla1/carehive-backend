@@ -1,5 +1,6 @@
 package com.careHive.dtos.Service;
 
+import com.careHive.enums.StatusEnum;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,6 +9,6 @@ import lombok.Data;
 public class ServiceRequestDTO {
     private String name;
     private String description;
-    private Double price;
-    private Boolean isActive;
+    private double pricePerHour;
+    private StatusEnum status;
 }

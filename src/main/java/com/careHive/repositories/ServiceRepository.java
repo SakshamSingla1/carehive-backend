@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ServiceRepository extends MongoRepository<Services, String> {
     Services findByName(String name);
+
+    long countByStatus(boolean status);
 }

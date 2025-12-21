@@ -23,7 +23,9 @@ public interface AuthService {
 
     String resetPassword(PasswordResetConfirmDTO dto) throws CarehiveException;
 
-    String changePassword(ChangePasswordDTO dto) throws CarehiveException;
+    String changePassword(String authorizationHeader,ChangePasswordDTO dto) throws CarehiveException;
 
-    UserProfileDTO getCurrentUser(String token) throws CarehiveException;
+    UserProfileDTO getCurrentUser(String authorizationHeader) throws CarehiveException;
+
+    UserProfileDTO updateCurrentUser(String authorizationHeader, UpdateUserProfileDTO dto) throws CarehiveException;
 }

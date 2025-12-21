@@ -1,5 +1,6 @@
 package com.careHive.dtos.Auth;
 
+import com.careHive.enums.VerificationStatusEnum;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -13,7 +14,7 @@ public class AuthResponseDTO {
     private String email;
     private String phoneNumber;
     private String roleName;
-    private boolean isVerified;
+    private VerificationStatusEnum verified;
     private LocalDateTime createdAt;
     private String message;
 }
