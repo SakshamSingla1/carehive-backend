@@ -12,9 +12,10 @@ public class AuthResponseDTO {
     private String name;
     private String username;
     private String email;
-    private String phoneNumber;
+    private String phone;
     private String roleName;
-    private VerificationStatusEnum verified;
+    private VerificationStatusEnum emailVerified;
+    private VerificationStatusEnum phoneVerified;
     private LocalDateTime createdAt;
     private String message;
 }

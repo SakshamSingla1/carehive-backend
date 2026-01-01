@@ -5,7 +5,7 @@ import com.careHive.dtos.Payment.PaymentResponseDTO;
 import com.careHive.entities.Booking;
 import com.careHive.entities.Payment;
 import com.careHive.entities.Services;
-import com.careHive.entities.User;
+import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.PaymentStatusEnum;
 import com.careHive.exceptions.CarehiveException;
@@ -49,9 +49,9 @@ public class PaymentServiceImpl implements PaymentService {
         }
         Services service = serviceRepository.findById(booking.getServiceId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
-        User elder = userRepository.findById(booking.getElderId())
+        Users elder = userRepository.findById(booking.getElderId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
-        User caretaker = userRepository.findById(booking.getCaretakerId())
+        Users caretaker = userRepository.findById(booking.getCaretakerId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
         double totalAmount = booking.getDurationHours() * service.getPricePerHour();
@@ -86,9 +86,9 @@ public class PaymentServiceImpl implements PaymentService {
 
         Services service = serviceRepository.findById(booking.getServiceId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
-        User elder = userRepository.findById(payment.getElderId())
+        Users elder = userRepository.findById(payment.getElderId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
-        User caretaker = userRepository.findById(payment.getCaretakerId())
+        Users caretaker = userRepository.findById(payment.getCaretakerId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
         return mapToResponseDTO(payment, elder, caretaker, service);
@@ -103,9 +103,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found"));
         Services service = serviceRepository.findById(booking.getServiceId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
-        User elder = userRepository.findById(payment.getElderId())
+        Users elder = userRepository.findById(payment.getElderId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
-        User caretaker = userRepository.findById(payment.getCaretakerId())
+        Users caretaker = userRepository.findById(payment.getCaretakerId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
         return mapToResponseDTO(payment, elder, caretaker, service);
@@ -118,8 +118,8 @@ public class PaymentServiceImpl implements PaymentService {
                     try {
                         Booking booking = bookingRepository.findById(payment.getBookingId()).orElse(null);
                         Services service = booking != null ? serviceRepository.findById(booking.getServiceId()).orElse(null) : null;
-                        User elder = userRepository.findById(payment.getElderId()).orElse(null);
-                        User caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
+                        Users elder = userRepository.findById(payment.getElderId()).orElse(null);
+                        Users caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
                         return mapToResponseDTO(payment, elder, caretaker, service);
                     } catch (Exception e) {
                         return null;
@@ -135,8 +135,8 @@ public class PaymentServiceImpl implements PaymentService {
                     try {
                         Booking booking = bookingRepository.findById(payment.getBookingId()).orElse(null);
                         Services service = booking != null ? serviceRepository.findById(booking.getServiceId()).orElse(null) : null;
-                        User elder = userRepository.findById(payment.getElderId()).orElse(null);
-                        User caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
+                        Users elder = userRepository.findById(payment.getElderId()).orElse(null);
+                        Users caretaker = userRepository.findById(payment.getCaretakerId()).orElse(null);
                         return mapToResponseDTO(payment, elder, caretaker, service);
                     } catch (Exception e) {
                         return null;
@@ -145,7 +145,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
 
-    private PaymentResponseDTO mapToResponseDTO(Payment payment, User elder, User caretaker, Services service) {
+    private PaymentResponseDTO mapToResponseDTO(Payment payment, Users elder, Users caretaker, Services service) {
         double totalHours = payment.getHours();
         int hours = (int) totalHours;
         int minutes = (int) Math.round((totalHours - hours) * 60);

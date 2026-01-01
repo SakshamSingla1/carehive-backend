@@ -25,8 +25,6 @@ public class NavLinkServiceImpl implements NavLinkService {
 
     private final NavLinkRepository navLinkRepository;
     private final MongoTemplate mongoTemplate;
-
-    // Constructor injection
     public NavLinkServiceImpl(NavLinkRepository navLinkRepository, MongoTemplate mongoTemplate) {
         this.navLinkRepository = navLinkRepository;
         this.mongoTemplate = mongoTemplate;

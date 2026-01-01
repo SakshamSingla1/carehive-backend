@@ -8,7 +8,7 @@ import lombok.Data;
 public class AuthLoginDTO {
     private String username;
     private String email;
-    private String phoneNumber;
+    private String phone;
     private String otp;
     private String password;
 }

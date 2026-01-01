@@ -49,21 +49,21 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.findByUsername(registerDTO.getUsername()).isPresent())
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same username already exists");
 
-        if (userRepository.findByPhoneNumber(registerDTO.getPhoneNumber()).isPresent())
+        if (userRepository.findByPhone(registerDTO.getPhone()).isPresent())
             throw new CarehiveException(ExceptionCodeEnum.DUPLICATE_PROFILE, "User with same phone number already exists");
 
         Role role = roleRepository.findByEnumCode(registerDTO.getRoleCode().name())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
 
-        User user = User.builder()
+        Users user = Users.builder()
                 .name(registerDTO.getName())
                 .username(registerDTO.getUsername())
                 .email(registerDTO.getEmail())
                 .password(passwordEncoder.encode(registerDTO.getPassword()))
                 .roleCode(registerDTO.getRoleCode())
-                .phoneNumber(registerDTO.getPhoneNumber())
-                .verified(VerificationStatusEnum.PENDING)
-                .caretakerStatus(VerificationStatusEnum.PENDING)
+                .phone(registerDTO.getPhone())
+                .emailVerified(VerificationStatusEnum.PENDING)
+                .phoneVerified(VerificationStatusEnum.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -94,9 +94,10 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
+                .phone(user.getPhone())
                 .roleName(role.getName())
-                .verified(user.getVerified())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
                 .createdAt(user.getCreatedAt())
                 .message("User registered successfully. Please verify OTP sent to your email.")
                 .build();
@@ -105,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String sendOtp(PhoneOtpRequestDTO dto) throws CarehiveException {
 
-        User user = userRepository.findByPhoneNumber(dto.getPhoneNumber())
+        Users user = userRepository.findByPhone(dto.getPhone())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         String rawOtp = generateRawOtp();
@@ -145,10 +146,11 @@ public class AuthServiceImpl implements AuthService {
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid OTP");
         }
 
-        User user = userRepository.findByEmail(dto.getEmail())
+        Users user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        user.setVerified(VerificationStatusEnum.VERIFIED);
+        user.setEmailVerified(VerificationStatusEnum.VERIFIED);
+        user.setPhoneVerified(VerificationStatusEnum.VERIFIED);
         user.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(user);
@@ -160,7 +162,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String resendOtp(String email) throws CarehiveException {
 
-        User user = userRepository.findByEmail(email)
+        Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         String rawOtp = generateRawOtp();
@@ -188,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String forgotPassword(PasswordResetRequestDTO dto) throws CarehiveException {
 
-        User user = userRepository.findByEmail(dto.getEmail())
+        Users user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         String token = UUID.randomUUID().toString();
@@ -232,7 +234,7 @@ public class AuthServiceImpl implements AuthService {
         if (token.getExpiryTime().isBefore(LocalDateTime.now()))
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Token expired");
 
-        User user = userRepository.findByEmail(token.getEmail())
+        Users user = userRepository.findByEmail(token.getEmail())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword()))
@@ -250,7 +252,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponseDTO login(AuthLoginDTO dto) throws CarehiveException {
 
-        User user;
+        Users user;
 
         if (dto.getEmail() != null) {
             user = userRepository.findByEmail(dto.getEmail())
@@ -265,7 +267,7 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
             throw new CarehiveException(ExceptionCodeEnum.INVALID_CREDENTIALS, "Invalid password");
 
-        if (user.getVerified() != VerificationStatusEnum.VERIFIED)
+        if (user.getEmailVerified() != VerificationStatusEnum.VERIFIED || user.getPhoneVerified() != VerificationStatusEnum.VERIFIED)
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Account not verified");
 
         String token = jwtUtil.generateAccessToken(user.getEmail());
@@ -284,10 +286,10 @@ public class AuthServiceImpl implements AuthService {
                 .name(user.getName())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .phone(user.getPhoneNumber())
+                .phone(user.getPhone())
                 .role(role.getName())
-                .verified(user.getVerified())
-                .caretakerStatus(user.getCaretakerStatus())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
                 .token("Bearer " + token)
                 .themes(themes)
                 .defaultTheme(defaultTheme)
@@ -300,7 +302,7 @@ public class AuthServiceImpl implements AuthService {
 
         String email = extractEmailFromHeader(authorizationHeader);
 
-        User user = userRepository.findByEmail(email)
+        Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword()))
@@ -325,7 +327,7 @@ public class AuthServiceImpl implements AuthService {
 
         String email = extractEmailFromHeader(authorizationHeader);
 
-        User user = userRepository.findByEmail(email)
+        Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
@@ -335,12 +337,12 @@ public class AuthServiceImpl implements AuthService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .phoneNumber(user.getPhoneNumber())
+                .phone(user.getPhone())
                 .username(user.getUsername())
-                .roleCode(user.getRoleCode().name())
+                .roleCode(user.getRoleCode())
                 .roleName(role.getName())
-                .caretakerStatus(user.getCaretakerStatus())
-                .verified(user.getVerified())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -352,13 +354,12 @@ public class AuthServiceImpl implements AuthService {
 
         String email = extractEmailFromHeader(authorizationHeader);
 
-        User user = userRepository.findByEmail(email)
+        Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
         if (dto.getName() != null) user.setName(dto.getName());
         if (dto.getUsername() != null) user.setUsername(dto.getUsername());
-        if (dto.getPhoneNumber() != null) user.setPhoneNumber(dto.getPhoneNumber());
-        if (dto.getCaretakerStatus() != null) user.setCaretakerStatus(dto.getCaretakerStatus());
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
 
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);

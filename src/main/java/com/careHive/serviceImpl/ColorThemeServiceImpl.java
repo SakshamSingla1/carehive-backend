@@ -29,9 +29,6 @@ public class ColorThemeServiceImpl implements ColorThemeService {
 
     private final ColorThemeRepository repository;
 
-    // ---------------------------
-    // CREATE THEME
-    // ---------------------------
     @Override
     public ColorThemeResponseDTO createTheme(ColorThemeRequestDTO dto) throws CarehiveException {
 
@@ -47,7 +44,7 @@ public class ColorThemeServiceImpl implements ColorThemeService {
                 .themeName(themeName)
                 .palette(mapPaletteDtoToEntity(dto.getPalette()))
                 .updatedAt(LocalDateTime.now())
-                .updatedBy("admin") // replace with actual user from security context if available
+                .updatedBy(RoleEnum.ADMIN.name())
                 .build();
 
         repository.save(theme);
@@ -55,9 +52,6 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         return mapToResponse(theme);
     }
 
-    // ---------------------------
-    // UPDATE THEME
-    // ---------------------------
     @Override
     public ColorThemeResponseDTO updateTheme(String id, ColorThemeRequestDTO dto) throws CarehiveException {
 
@@ -69,16 +63,11 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         theme.setRole(dto.getRole());
         theme.setPalette(mapPaletteDtoToEntity(dto.getPalette()));
         theme.setUpdatedAt(LocalDateTime.now());
-        theme.setUpdatedBy("admin"); // replace with actual user
-
+        theme.setUpdatedBy(RoleEnum.ADMIN.name());
         repository.save(theme);
-
         return mapToResponse(theme);
     }
 
-    // ---------------------------
-    // GET BY ROLE + THEME NAME
-    // ---------------------------
     @Override
     public ColorThemeResponseDTO getThemeByRoleAndName(RoleEnum role, String themeName) throws CarehiveException {
         if (role == null) {
@@ -93,9 +82,6 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         return mapToResponse(theme);
     }
 
-    // ---------------------------
-    // GET ALL THEMES BY ROLE
-    // ---------------------------
     @Override
     public List<ColorThemeResponseDTO> getThemesByRole(RoleEnum role) {
         if (role == null) {
@@ -108,18 +94,12 @@ public class ColorThemeServiceImpl implements ColorThemeService {
                 .collect(Collectors.toList());
     }
 
-    // ---------------------------
-    // GET ALL THEMES
-    // ---------------------------
     @Override
     public Page<ColorThemeResponseDTO> getAllThemes(Pageable pageable) {
         Page<ColorTheme> colorThemes= repository.findAll(pageable);
         return colorThemes.map(this::mapToResponse);
     }
 
-    // ---------------------------
-    // DELETE THEME
-    // ---------------------------
     @Override
     public String deleteTheme(String id) throws CarehiveException {
 
@@ -132,9 +112,6 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         return "Theme deleted successfully";
     }
 
-    // ============================================================
-    // 🔄 DTO → ENTITY MAPPERS
-    // ============================================================
     private ColorPalette mapPaletteDtoToEntity(ColorPaletteDTO dto) {
         if (dto == null) return null;
 
@@ -163,9 +140,6 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         return level;
     }
 
-    // ============================================================
-    // 🔄 ENTITY → DTO MAPPERS
-    // ============================================================
     private ColorThemeResponseDTO mapToResponse(ColorTheme theme) {
         ColorPaletteDTO paletteDTO = new ColorPaletteDTO();
         paletteDTO.setColorGroups(

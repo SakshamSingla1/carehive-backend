@@ -26,11 +26,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public AdminStatsDTO getAdminStats() {
         long totalUsers = userRepository.count();
-        long totalElders = userRepository.countByRoleCode(RoleEnum.ELDER.name());
-        long totalCaretakers = userRepository.countByRoleCode(RoleEnum.CARETAKER.name());
-        long totalFamilyMembers = userRepository.countByRoleCode(RoleEnum.FAMILY_MEMBER.name());
-        long verifiedCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.VERIFIED);
-        long pendingCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.PENDING);
+        long totalElders = userRepository.countByRoleCode(RoleEnum.ELDER);
+        long totalCaretakers = userRepository.countByRoleCode(RoleEnum.CARETAKER);
+        long totalFamilyMembers = userRepository.countByRoleCode(RoleEnum.FAMILY_MEMBER);
+//        long verifiedCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.VERIFIED);
+//        long pendingCaretakers = userRepository.countByRoleCodeAndCaretakerStatus(RoleEnum.CARETAKER.name(), VerificationStatusEnum.PENDING);
 
         long totalServices = serviceRepository.count();
         long activeServices = serviceRepository.countByStatus(true);
@@ -48,8 +48,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .totalElders(totalElders)
                 .totalCaretakers(totalCaretakers)
                 .totalFamilyMembers(totalFamilyMembers)
-                .totalVerifiedCaretakers(verifiedCaretakers)
-                .pendingCaretakerVerifications(pendingCaretakers)
+//                .totalVerifiedCaretakers(verifiedCaretakers)
+//                .pendingCaretakerVerifications(pendingCaretakers)
                 .totalServices(totalServices)
                 .activeServices(activeServices)
                 .inactiveServices(inActiveServices)

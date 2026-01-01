@@ -22,10 +22,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // --------------------------------------------------------
-    // 🔹 USER REGISTRATION & VERIFICATION
-    // --------------------------------------------------------
-
     @Operation(summary = "Register a new user")
     @PostMapping("/register")
     public ResponseEntity<ResponseModel<AuthResponseDTO>> register(@RequestBody AuthRegisterDTO registerDTO)
@@ -50,10 +46,6 @@ public class AuthController {
         return ApiResponse.respond(message, "OTP resent successfully", "Failed to resend OTP");
     }
 
-    // --------------------------------------------------------
-    // 🔹 LOGIN & OTP (for phone login)
-    // --------------------------------------------------------
-
     @Operation(summary = "Send OTP for phone login")
     @PostMapping("/send-otp")
     public ResponseEntity<ResponseModel<String>> sendLoginOtp(@RequestBody PhoneOtpRequestDTO request)
@@ -69,10 +61,6 @@ public class AuthController {
         LoginResponseDTO response = authService.login(loginDTO);
         return ApiResponse.respond(response, "Login successful", "Invalid credentials");
     }
-
-    // --------------------------------------------------------
-    // 🔹 PASSWORD MANAGEMENT
-    // --------------------------------------------------------
 
     @Operation(summary = "Send password reset token to user email")
     @PostMapping("/forgot-password")
@@ -107,10 +95,6 @@ public class AuthController {
         String message = authService.changePassword(authorizationHeader,requestDTO);
         return ApiResponse.respond(message, "Password changed successfully", "Failed to change password");
     }
-
-    // --------------------------------------------------------
-    // 🔹 USER PROFILE
-    // --------------------------------------------------------
 
     @GetMapping("/me")
     public ResponseEntity<ResponseModel<UserProfileDTO>> getCurrentUser(

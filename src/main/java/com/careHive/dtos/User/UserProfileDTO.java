@@ -2,6 +2,7 @@ package com.careHive.dtos.User;
 
 import com.careHive.entities.DocumentInfo;
 import com.careHive.entities.Services;
+import com.careHive.enums.RoleEnum;
 import com.careHive.enums.VerificationStatusEnum;
 import lombok.Builder;
 import lombok.Data;
@@ -16,11 +17,11 @@ public class UserProfileDTO {
     private String name;
     private String username;
     private String email;
-    private String roleCode;
+    private RoleEnum roleCode;
     private String roleName;
-    private String phoneNumber;
-    private VerificationStatusEnum verified;
-    private VerificationStatusEnum caretakerStatus;
+    private String phone;
+    private VerificationStatusEnum emailVerified;
+    private VerificationStatusEnum phoneVerified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

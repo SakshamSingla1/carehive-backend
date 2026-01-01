@@ -1,86 +1,71 @@
 package com.careHive.controller;
 
-import com.careHive.entities.DocumentInfo;
+import com.careHive.dtos.Documents.DocumentRequestDTO;
+import com.careHive.dtos.Documents.DocumentResponseDTO;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
 import com.careHive.services.CloudinaryService;
-import com.careHive.services.UserService;
+import com.careHive.services.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/upload")
+@RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
 public class UploadController {
 
     private final CloudinaryService cloudinaryService;
-    private final UserService userService;
+    private final DocumentService documentService;
 
-    /**
-     * Upload multiple files for a specific user.
-     */
-    @PostMapping("/{userId}")
-    public ResponseEntity<ResponseModel<List<DocumentInfo>>> uploadMultipleDocuments(
-            @PathVariable String userId,
-            @RequestParam("files") List<MultipartFile> files
+    @PostMapping("/{caretakerId}")
+    public ResponseEntity<ResponseModel<DocumentResponseDTO>> uploadDocument(
+            @PathVariable String caretakerId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "false") boolean isPrivate
     ) throws Exception {
 
-        List<DocumentInfo> uploadedDocuments = new ArrayList<>();
+        Map uploadResult = cloudinaryService.uploadFile(file);
 
-        for (MultipartFile file : files) {
-            Map uploadResult = cloudinaryService.uploadFile(file);
+        DocumentRequestDTO dto = new DocumentRequestDTO();
+        dto.setCaretakerId(caretakerId);
+        dto.setFileName(file.getOriginalFilename());
+        dto.setFileUrl(uploadResult.get("secure_url").toString());
+        dto.setPublicId(uploadResult.get("public_id").toString());
+        dto.setPrivate(isPrivate);
 
-            DocumentInfo documentInfo = DocumentInfo.builder()
-                    .documentId(uploadResult.get("public_id").toString())
-                    .url(uploadResult.get("secure_url").toString())
-                    .name(file.getOriginalFilename())
-                    .type(file.getContentType())
-                    .size(file.getSize())
-                    .uploadedBy(userId)
-                    .uploadedAt(LocalDateTime.now())
-                    .build();
+        DocumentResponseDTO response = documentService.addDocument(dto);
 
-            // Save each document to user's list
-            userService.addDocument(userId, documentInfo);
-            uploadedDocuments.add(documentInfo);
-        }
-
-        return ApiResponse.respond(uploadedDocuments,
-                "All files uploaded successfully",
-                "Failed to upload files");
+        return ApiResponse.respond(
+                response,
+                "Document uploaded successfully",
+                "Failed to upload document"
+        );
     }
 
-    /**
-     * Fetch all uploaded documents of a user.
-     */
-    @GetMapping("/{userId}")
-    public ResponseEntity<ResponseModel<List<DocumentInfo>>> getUserDocuments(@PathVariable String userId) throws CarehiveException {
+    @GetMapping("/{caretakerId}")
+    public ResponseEntity<ResponseModel<List<DocumentResponseDTO>>> getDocuments(
+            @PathVariable String caretakerId
+    ) throws CarehiveException {
         return ApiResponse.respond(
-                userService.getUserDocuments(userId),
+                documentService.getUserDocuments(caretakerId),
                 "Documents fetched successfully",
                 "Failed to fetch documents"
         );
     }
 
-    /**
-     * Delete document both from Cloudinary and user record.
-     */
-    @DeleteMapping("/{userId}")
+    @DeleteMapping("/{caretakerId}/{documentId}")
     public ResponseEntity<ResponseModel<String>> deleteDocument(
-            @PathVariable String userId,
-            @RequestParam String documentId
+            @PathVariable String caretakerId,
+            @PathVariable String documentId
     ) throws Exception {
 
         cloudinaryService.deleteFile(documentId);
-        userService.deleteDocument(userId, documentId);
+        documentService.deleteDocument(caretakerId, documentId);
 
         return ApiResponse.respond(
                 "Document deleted successfully",

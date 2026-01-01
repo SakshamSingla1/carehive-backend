@@ -12,5 +12,5 @@ public class AuthRegisterDTO {
     private String email;
     private String password;
     private RoleEnum roleCode;
-    private String phoneNumber;
+    private String phone;
 }

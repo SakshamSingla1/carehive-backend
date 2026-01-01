@@ -17,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Document(collection = "users")
-public class User {
+public class Users {
     @Id
     private String id;
     private String name;
@@ -25,11 +25,9 @@ public class User {
     private String email;
     private String password;
     private RoleEnum roleCode;
-    private String phoneNumber;
-    private VerificationStatusEnum verified;
-    private List<String> serviceIds; // List of service references
-    private VerificationStatusEnum caretakerStatus; // Admin verification
-    private List<DocumentInfo> documents; // <-- multiple uploaded documents
+    private String phone;
+    private VerificationStatusEnum emailVerified;
+    private VerificationStatusEnum phoneVerified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

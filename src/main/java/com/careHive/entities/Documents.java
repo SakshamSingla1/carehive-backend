@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -19,5 +20,5 @@ public class Documents {
     private String fileUrl;
     private String publicId;
     private boolean isPrivate;
-    private Timestamp uploadedAt;
+    private LocalDateTime uploadedAt;
 }
