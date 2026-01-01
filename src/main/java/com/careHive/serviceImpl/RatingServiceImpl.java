@@ -4,7 +4,7 @@ import com.careHive.dtos.Rating.RatingRequestDTO;
 import com.careHive.dtos.Rating.RatingResponseDTO;
 import com.careHive.entities.Booking;
 import com.careHive.entities.Rating;
-import com.careHive.entities.User;
+import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.BookingRepository;
@@ -41,10 +41,10 @@ public class RatingServiceImpl implements RatingService {
         Booking booking = bookingRepository.findById(dto.getBookingId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found"));
 
-        User elder = userRepository.findById(booking.getElderId())
+        Users elder = userRepository.findById(booking.getElderId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder user not found"));
 
-        User caretaker = userRepository.findById(booking.getCaretakerId())
+        Users caretaker = userRepository.findById(booking.getCaretakerId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
         Rating rating = Rating.builder()
@@ -102,13 +102,13 @@ public class RatingServiceImpl implements RatingService {
         List<String> userIds = bookingMap.values().stream()
                 .flatMap(b -> List.of(b.getElderId(), b.getCaretakerId()).stream())
                 .distinct().toList();
-        Map<String, User> userMap = userRepository.findAllById(userIds)
-                .stream().collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, Users> userMap = userRepository.findAllById(userIds)
+                .stream().collect(Collectors.toMap(Users::getId, u -> u));
         return ratings.stream()
                 .map(r -> {
                     Booking booking = bookingMap.get(r.getBookingId());
-                    User elder = userMap.get(booking.getElderId());
-                    User caretaker = userMap.get(booking.getCaretakerId());
+                    Users elder = userMap.get(booking.getElderId());
+                    Users caretaker = userMap.get(booking.getCaretakerId());
                     return mapToResponseSafe(r, booking, elder, caretaker);
                 })
                 .collect(Collectors.toList());
@@ -118,16 +118,16 @@ public class RatingServiceImpl implements RatingService {
         Booking booking = bookingRepository.findById(rating.getBookingId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found"));
 
-        User elder = userRepository.findById(booking.getElderId())
+        Users elder = userRepository.findById(booking.getElderId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        User caretaker = userRepository.findById(booking.getCaretakerId())
+        Users caretaker = userRepository.findById(booking.getCaretakerId())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
         return mapToResponse(rating, booking, elder, caretaker);
     }
 
-    private RatingResponseDTO mapToResponse(Rating rating, Booking booking, User elder, User caretaker) {
+    private RatingResponseDTO mapToResponse(Rating rating, Booking booking, Users elder, Users caretaker) {
         return RatingResponseDTO.builder()
                 .id(rating.getId())
                 .userName(elder.getName())
@@ -139,7 +139,7 @@ public class RatingServiceImpl implements RatingService {
                 .build();
     }
 
-    private RatingResponseDTO mapToResponseSafe(Rating rating, Booking booking, User elder, User caretaker) {
+    private RatingResponseDTO mapToResponseSafe(Rating rating, Booking booking, Users elder, Users caretaker) {
         try {
             return mapToResponse(rating, booking, elder, caretaker);
         } catch (Exception e) {

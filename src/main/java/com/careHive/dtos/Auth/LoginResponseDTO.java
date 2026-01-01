@@ -19,11 +19,9 @@ public class LoginResponseDTO {
     private String email;
     private String role;
     private String token;
-    private VerificationStatusEnum verified;
-    private VerificationStatusEnum caretakerStatus;
-
-    private List<ColorTheme> themes;       // ← all themes for this role
-    private ColorTheme defaultTheme;        // ← default theme for usage
-
+    private VerificationStatusEnum emailVerified;
+    private VerificationStatusEnum phoneVerified;
+    private List<ColorTheme> themes;
+    private ColorTheme defaultTheme;
     private List<NavLink> navLinks;
 }

@@ -32,32 +32,26 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public String generateInvoice(Payment payment) throws CarehiveException {
         try {
-            // Fetch booking, elder, caretaker, service
             Booking booking = bookingRepository.findById(payment.getBookingId())
                     .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BOOKING_NOT_FOUND, "Booking not found"));
 
-            User elder = userRepository.findById(payment.getElderId())
+            Users elder = userRepository.findById(payment.getElderId())
                     .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
 
-            User caretaker = userRepository.findById(payment.getCaretakerId())
+            Users caretaker = userRepository.findById(payment.getCaretakerId())
                     .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
             Services service = serviceRepository.findById(booking.getServiceId())
                     .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.SERVICE_NOT_FOUND, "Service not found"));
 
-            // Format duration
             double totalHours = booking.getDurationHours();
             int hours = (int) totalHours;
             int minutes = (int) Math.round((totalHours - hours) * 60);
             String durationFormatted = String.format("%d hr %02d min", hours, minutes);
-
-            // Format date/time
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
             String formattedCreatedAt = payment.getCreatedAt() != null ? payment.getCreatedAt().format(formatter) : "N/A";
             String formattedStartTime = booking.getStartTime() != null ? booking.getStartTime().format(formatter) : "N/A";
             String formattedEndTime = booking.getEndTime() != null ? booking.getEndTime().format(formatter) : "N/A";
-
-            // Thymeleaf context setup
             Context context = new Context();
             context.setVariable("payment", payment);
             context.setVariable("booking", booking);
@@ -68,11 +62,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             context.setVariable("formattedCreatedAt", formattedCreatedAt);
             context.setVariable("formattedStartTime", formattedStartTime);
             context.setVariable("formattedEndTime", formattedEndTime);
-
-            // Render HTML template to string
             String html = templateEngine.process("payment-invoice", context);
-
-            // Generate PDF from HTML
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
@@ -81,8 +71,6 @@ public class InvoiceServiceImpl implements InvoiceService {
             builder.run();
 
             byte[] pdfBytes = outputStream.toByteArray();
-
-            // ✅ FIX: Cloudinary needs byte[] instead of InputStream
             Map uploadResult = cloudinary.uploader().upload(
                     pdfBytes,
                     ObjectUtils.asMap(
@@ -94,8 +82,6 @@ public class InvoiceServiceImpl implements InvoiceService {
             );
 
             String cloudinaryUrl = (String) uploadResult.get("secure_url");
-
-            // Save invoice metadata to MongoDB
             Invoice invoice = Invoice.builder()
                     .paymentId(payment.getId())
                     .invoiceUrl(cloudinaryUrl)

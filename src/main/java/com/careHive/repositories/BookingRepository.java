@@ -14,7 +14,6 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 
     List<Booking> findByCaretakerId(String caretakerId);
 
-    // ✅ Custom method to check if a pending booking exists between elder and caretaker
     boolean existsByElderIdAndCaretakerIdAndStatus(String elderId, String caretakerId, BookingStatusEnum status);
 
     long countByStatus(BookingStatusEnum status);

@@ -1,9 +1,12 @@
 package com.careHive.serviceImpl;
 
+import com.careHive.dtos.User.UserProfileDTO;
 import com.careHive.entities.DocumentInfo;
-import com.careHive.entities.User;
+import com.careHive.entities.Role;
+import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.exceptions.CarehiveException;
+import com.careHive.repositories.RoleRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -17,41 +20,47 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     @Override
-    public User addDocument(String userId, DocumentInfo document) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+    public List<UserProfileDTO> getAllUsers() throws CarehiveException {
 
-        if (user.getDocuments() == null) {
-            user.setDocuments(new ArrayList<>());
+        List<Users> users = userRepository.findAll();
+
+        if (users.isEmpty()) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                    "No users found"
+            );
         }
 
-        user.getDocuments().add(document);
-        return userRepository.save(user);
+        return users.stream()
+                .map(this::toUserProfileDTO)
+                .toList();
     }
 
-    @Override
-    public List<DocumentInfo> getUserDocuments(String userId) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+    private UserProfileDTO toUserProfileDTO(Users user) {
 
-        return user.getDocuments() != null ? user.getDocuments() : new ArrayList<>();
+        String roleName = roleRepository
+                .findByEnumCode(user.getRoleCode().name())
+                .map(Role::getName)
+                .orElse(null);
+
+        return UserProfileDTO.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .roleCode(user.getRoleCode())
+                .roleName(roleName)
+                .phone(user.getPhone())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 
-    @Override
-    public void deleteDocument(String userId, String documentId) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        if (user.getDocuments() != null && !user.getDocuments().isEmpty()) {
-            boolean removed = user.getDocuments().removeIf(doc -> doc.getDocumentId().equals(documentId));
-            if (removed) {
-                userRepository.save(user);
-            } else {
-                throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Document not found for this user");
-            }
-        }
-    }
 
 }

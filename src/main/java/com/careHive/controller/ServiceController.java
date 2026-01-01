@@ -24,7 +24,6 @@ public class ServiceController {
 
     private final ServiceService serviceService;
 
-    // ✅ CREATE SERVICE
     @Operation(summary = "Create a new service")
     @PostMapping
     public ResponseEntity<ResponseModel<ServiceResponseDTO>> createService(
@@ -36,7 +35,6 @@ public class ServiceController {
                 "Failed to create service");
     }
 
-    // ✅ UPDATE SERVICE
     @Operation(summary = "Update an existing service")
     @PutMapping("/{id}")
     public ResponseEntity<ResponseModel<ServiceResponseDTO>> updateService(
@@ -49,7 +47,6 @@ public class ServiceController {
                 "Failed to update service");
     }
 
-    // ✅ DELETE SERVICE
     @Operation(summary = "Delete a service by ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseModel<String>> deleteService(
@@ -61,7 +58,6 @@ public class ServiceController {
                 "Failed to delete service");
     }
 
-    // ✅ GET SINGLE SERVICE
     @Operation(summary = "Get service details by ID")
     @GetMapping("/{id}")
     public ResponseEntity<ResponseModel<ServiceResponseDTO>> getService(
@@ -73,7 +69,6 @@ public class ServiceController {
                 "Failed to fetch service");
     }
 
-    // ✅ GET ALL SERVICES (Pagination + Search + Sort)
     @Operation(summary = "Get all services with pagination, search and sorting")
     @GetMapping
     public ResponseEntity<ResponseModel<Page<ServiceResponseDTO>>> getAllServices(
@@ -90,7 +85,6 @@ public class ServiceController {
                 "Failed to fetch services");
     }
 
-    // ✅ ASSIGN SERVICES TO CARETAKER
     @Operation(summary = "Assign one or more services to a caretaker")
     @PutMapping("/assign/{caretakerId}")
     public ResponseEntity<ResponseModel<List<CSResponseDTO>>> assignServicesToCaretaker(

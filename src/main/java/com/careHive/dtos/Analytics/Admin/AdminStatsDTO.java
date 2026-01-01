@@ -7,9 +7,6 @@ import lombok.Data;
 @Builder
 public class AdminStatsDTO {
 
-    // -------------------------
-    // USER STATS
-    // -------------------------
     private Long totalUsers;
     private Long totalElders;
     private Long totalFamilyMembers;
@@ -18,16 +15,10 @@ public class AdminStatsDTO {
     private Long totalVerifiedCaretakers;
     private Long pendingCaretakerVerifications;
 
-    // -------------------------
-    // SERVICE STATS
-    // -------------------------
     private Long totalServices;
     private Long activeServices;
     private Long inactiveServices;
 
-    // -------------------------
-    // BOOKING STATS
-    // -------------------------
     private Long totalBookings;
     private Long pendingBookings;
     private Long completedBookings;
