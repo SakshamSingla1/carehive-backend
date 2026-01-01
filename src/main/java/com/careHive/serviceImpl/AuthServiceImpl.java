@@ -6,15 +6,18 @@ import com.careHive.dtos.Password.ChangePasswordDTO;
 import com.careHive.dtos.Password.PasswordResetConfirmDTO;
 import com.careHive.dtos.Password.PasswordResetRequestDTO;
 import com.careHive.dtos.Auth.UpdateUserProfileDTO;
-import com.careHive.dtos.User.UserProfileDTO;
+import com.careHive.dtos.User.UserProfileRequestDTO;
+import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.entities.*;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.enums.VerificationStatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.*;
 import com.careHive.security.JwtUtil;
 import com.careHive.services.AuthService;
 import com.careHive.services.NTService;
+import com.careHive.utils.Helper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +42,8 @@ public class AuthServiceImpl implements AuthService {
     private final NTService ntService;
     private final ColorThemeRepository colorThemeRepository;
     private final NavLinkRepository navLinkRepository;
+    private final Helper helper;
+    private final UserProfileRepository userProfileRepository;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -62,6 +67,7 @@ public class AuthServiceImpl implements AuthService {
                 .password(passwordEncoder.encode(registerDTO.getPassword()))
                 .roleCode(registerDTO.getRoleCode())
                 .phone(registerDTO.getPhone())
+                .status(StatusEnum.ACTIVE)
                 .emailVerified(VerificationStatusEnum.PENDING)
                 .phoneVerified(VerificationStatusEnum.PENDING)
                 .createdAt(LocalDateTime.now())
@@ -70,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        String rawOtp = generateRawOtp();
+        String rawOtp = helper.generateRawOtp();
         String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(user.getEmail());
@@ -96,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .roleName(role.getName())
+                .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .createdAt(user.getCreatedAt())
@@ -109,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
         Users user = userRepository.findByPhone(dto.getPhone())
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        String rawOtp = generateRawOtp();
+        String rawOtp = helper.generateRawOtp();
         String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(user.getEmail());
@@ -165,7 +172,7 @@ public class AuthServiceImpl implements AuthService {
         Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        String rawOtp = generateRawOtp();
+        String rawOtp = helper.generateRawOtp();
         String encodedOtp = passwordEncoder.encode(rawOtp);
 
         otpRepository.deleteByEmail(email);
@@ -288,6 +295,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .role(role.getName())
+                .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .token("Bearer " + token)
@@ -300,7 +308,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String changePassword(String authorizationHeader, ChangePasswordDTO dto) throws CarehiveException {
 
-        String email = extractEmailFromHeader(authorizationHeader);
+        String email = helper.extractEmailFromHeader(authorizationHeader);
 
         Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
@@ -323,57 +331,85 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public UserProfileDTO getCurrentUser(String authorizationHeader) throws CarehiveException {
+    public UserProfileResponseDTO getCurrentUser(String authorizationHeader)
+            throws CarehiveException {
 
-        String email = extractEmailFromHeader(authorizationHeader);
+        String email = helper.extractEmailFromHeader(authorizationHeader);
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                        "User not found"
+                ));
 
         Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Role not found"));
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.BAD_REQUEST,
+                        "Role not found"
+                ));
 
-        return UserProfileDTO.builder()
+        UserProfile profile = userProfileRepository
+                .findByUserId(user.getId())
+                .orElse(null);
+
+        return UserProfileResponseDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
+                .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .username(user.getUsername())
                 .roleCode(user.getRoleCode())
                 .roleName(role.getName())
+                .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
+                .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
+                .gender(profile != null ? profile.getGender() : null)
+                .address(profile != null ? profile.getAddress() : null)
+                .emergencyContact(profile != null ? profile.getEmergencyContact() : null)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
     @Override
-    public UserProfileDTO updateCurrentUser(String authorizationHeader, UpdateUserProfileDTO dto)
-            throws CarehiveException {
+    public UserProfileResponseDTO updateCurrentUser(
+            String authorizationHeader,
+            UserProfileRequestDTO dto
+    ) throws CarehiveException {
 
-        String email = extractEmailFromHeader(authorizationHeader);
+        String email = helper.extractEmailFromHeader(authorizationHeader);
 
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new CarehiveException(
+                        ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"
+                ));
 
-        if (dto.getName() != null) user.setName(dto.getName());
-        if (dto.getUsername() != null) user.setUsername(dto.getUsername());
-        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        UserProfile profile = userProfileRepository
+                .findByUserId(user.getId())
+                .orElse(
+                        UserProfile.builder()
+                                .userId(user.getId())
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                );
 
-        user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
+        if (dto.getDateOfBirth() != null)
+            profile.setDateOfBirth(dto.getDateOfBirth());
+
+        if (dto.getGender() != null)
+            profile.setGender(dto.getGender());
+
+        if (dto.getAddress() != null)
+            profile.setAddress(dto.getAddress());
+
+        if (dto.getEmergencyContact() != null)
+            profile.setEmergencyContact(dto.getEmergencyContact());
+
+        profile.setUpdatedAt(LocalDateTime.now());
+        userProfileRepository.save(profile);
 
         return getCurrentUser(authorizationHeader);
     }
 
-    private String generateRawOtp() {
-        return String.format("%06d", new Random().nextInt(999999));
-    }
-
-    private String extractEmailFromHeader(String header) throws CarehiveException {
-        if (header == null || !header.startsWith("Bearer "))
-            throw new CarehiveException(ExceptionCodeEnum.UNAUTHORIZED, "Invalid authorization header");
-        return jwtUtil.extractEmail(header.substring(7));
-    }
 }

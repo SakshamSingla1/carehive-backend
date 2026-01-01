@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @Builder
 @Document(collection = "user-profiles")
 public class UserProfile {
-    private String id;
     private String userId;
     private LocalDate dateOfBirth;
     private GenderEnum gender;

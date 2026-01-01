@@ -5,7 +5,8 @@ import com.careHive.dtos.Otp.OtpRequestDTO;
 import com.careHive.dtos.Password.PasswordResetConfirmDTO;
 import com.careHive.dtos.Password.PasswordResetRequestDTO;
 import com.careHive.dtos.Password.ChangePasswordDTO;
-import com.careHive.dtos.User.UserProfileDTO;
+import com.careHive.dtos.User.UserProfileRequestDTO;
+import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -97,10 +98,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ResponseModel<UserProfileDTO>> getCurrentUser(
+    public ResponseEntity<ResponseModel<UserProfileResponseDTO>> getCurrentUser(
             @RequestHeader("Authorization") String authorizationHeader
     ) throws CarehiveException {
-        UserProfileDTO userProfile =
+        UserProfileResponseDTO userProfile =
                 authService.getCurrentUser(authorizationHeader);
         return ApiResponse.respond(
                 userProfile,
@@ -110,11 +111,11 @@ public class AuthController {
     }
 
     @PutMapping("/update")
-    public ResponseEntity<ResponseModel<UserProfileDTO>> updateCurrentUser(
+    public ResponseEntity<ResponseModel<UserProfileResponseDTO>> updateCurrentUser(
             @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody UpdateUserProfileDTO updateDTO
+            @RequestBody UserProfileRequestDTO updateDTO
     ) throws CarehiveException {
-        UserProfileDTO updatedProfile =
+        UserProfileResponseDTO updatedProfile =
                 authService.updateCurrentUser(authorizationHeader, updateDTO);
         return ApiResponse.respond(
                 updatedProfile,

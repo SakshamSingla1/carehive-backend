@@ -1,6 +1,6 @@
 package com.careHive.controller;
 
-import com.careHive.dtos.User.UserProfileDTO;
+import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -20,8 +20,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<ResponseModel<List<UserProfileDTO>>> getUsers() throws CarehiveException {
-        List<UserProfileDTO> responseList = userService.getAllUsers();
+    public ResponseEntity<ResponseModel<List<UserProfileResponseDTO>>> getUsers() throws CarehiveException {
+        List<UserProfileResponseDTO> responseList = userService.getAllUsers();
         return ApiResponse.respond(responseList,"Users fetched successfully","Unable to fetch users");
     }
 }

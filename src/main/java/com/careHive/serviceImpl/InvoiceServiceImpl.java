@@ -74,7 +74,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             Map uploadResult = cloudinary.uploader().upload(
                     pdfBytes,
                     ObjectUtils.asMap(
-                            "resource_type", "raw",        // raw → for PDFs
+                            "resource_type", "raw",
                             "folder", "invoices/",
                             "public_id", "invoice_" + payment.getId(),
                             "overwrite", true

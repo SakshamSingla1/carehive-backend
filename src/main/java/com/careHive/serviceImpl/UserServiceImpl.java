@@ -1,18 +1,18 @@
 package com.careHive.serviceImpl;
 
-import com.careHive.dtos.User.UserProfileDTO;
-import com.careHive.entities.DocumentInfo;
+import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.entities.Role;
+import com.careHive.entities.UserProfile;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.RoleRepository;
+import com.careHive.repositories.UserProfileRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -21,9 +21,10 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserProfileRepository userProfileRepository;
 
     @Override
-    public List<UserProfileDTO> getAllUsers() throws CarehiveException {
+    public List<UserProfileResponseDTO> getAllUsers() throws CarehiveException {
 
         List<Users> users = userRepository.findAll();
 
@@ -39,23 +40,29 @@ public class UserServiceImpl implements UserService {
                 .toList();
     }
 
-    private UserProfileDTO toUserProfileDTO(Users user) {
-
-        String roleName = roleRepository
-                .findByEnumCode(user.getRoleCode().name())
-                .map(Role::getName)
+    private UserProfileResponseDTO toUserProfileDTO(Users user) {
+        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
                 .orElse(null);
 
-        return UserProfileDTO.builder()
+        UserProfile profile = userProfileRepository
+                .findByUserId(user.getId())
+                .orElse(null);
+
+        return UserProfileResponseDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .roleCode(user.getRoleCode())
-                .roleName(roleName)
                 .phone(user.getPhone())
+                .roleCode(user.getRoleCode())
+                .roleName(role.getName())
+                .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
+                .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
+                .gender(profile != null ? profile.getGender() : null)
+                .address(profile != null ? profile.getAddress() : null)
+                .emergencyContact(profile != null ? profile.getEmergencyContact() : null)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

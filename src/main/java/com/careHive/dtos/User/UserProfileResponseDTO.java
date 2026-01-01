@@ -1,35 +1,35 @@
-package com.careHive.entities;
+package com.careHive.dtos.User;
 
+import com.careHive.entities.Address;
+import com.careHive.entities.EmergencyContact;
+import com.careHive.enums.GenderEnum;
 import com.careHive.enums.RoleEnum;
 import com.careHive.enums.StatusEnum;
 import com.careHive.enums.VerificationStatusEnum;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-@Document(collection = "users")
-public class Users {
-    @Id
+public class UserProfileResponseDTO {
     private String id;
     private String name;
     private String username;
     private String email;
-    private String password;
-    private RoleEnum roleCode;
     private String phone;
+    private RoleEnum roleCode;
+    private String roleName;
     private StatusEnum status;
     private VerificationStatusEnum emailVerified;
     private VerificationStatusEnum phoneVerified;
+    private LocalDate dateOfBirth;
+    private GenderEnum gender;
+    private Address address;
+    private EmergencyContact emergencyContact;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
