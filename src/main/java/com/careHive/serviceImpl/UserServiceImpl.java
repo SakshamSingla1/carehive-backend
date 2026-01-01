@@ -5,6 +5,7 @@ import com.careHive.entities.Role;
 import com.careHive.entities.UserProfile;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.RoleRepository;
 import com.careHive.repositories.UserProfileRepository;
@@ -12,6 +13,7 @@ import com.careHive.repositories.UserRepository;
 import com.careHive.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.careHive.utils.Helper;
 
 import java.util.List;
 
@@ -22,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserProfileRepository userProfileRepository;
+    private final Helper helper;
 
     @Override
     public List<UserProfileResponseDTO> getAllUsers() throws CarehiveException {
@@ -38,6 +41,19 @@ public class UserServiceImpl implements UserService {
         return users.stream()
                 .map(this::toUserProfileDTO)
                 .toList();
+    }
+
+    @Override
+    public void deleteUserByID(String authorizationHeader) throws CarehiveException {
+        String email = helper.extractEmailFromHeader(authorizationHeader);
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+         if (user.getRoleCode() == RoleEnum.ADMIN) {
+             throw new CarehiveException(ExceptionCodeEnum.OPERATION_NOT_ALLOWED, "Admin users cannot be deleted");
+         }
+        userProfileRepository.findByUserId(user.getId())
+                .ifPresent(userProfileRepository::delete);
+        userRepository.delete(user);
     }
 
     private UserProfileResponseDTO toUserProfileDTO(Users user) {

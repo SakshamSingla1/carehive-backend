@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface UserService {
     List<UserProfileResponseDTO> getAllUsers() throws CarehiveException;
+    void deleteUserByID(String id) throws CarehiveException;
 }
