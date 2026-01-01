@@ -1,15 +1,18 @@
 package com.careHive.serviceImpl;
 
-import com.careHive.entities.DocumentInfo;
-import com.careHive.entities.User;
+import com.careHive.dtos.User.UserProfileResponseDTO;
+import com.careHive.entities.Role;
+import com.careHive.entities.UserProfile;
+import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.exceptions.CarehiveException;
+import com.careHive.repositories.RoleRepository;
+import com.careHive.repositories.UserProfileRepository;
 import com.careHive.repositories.UserRepository;
 import com.careHive.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -17,41 +20,54 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final UserProfileRepository userProfileRepository;
 
     @Override
-    public User addDocument(String userId, DocumentInfo document) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+    public List<UserProfileResponseDTO> getAllUsers() throws CarehiveException {
 
-        if (user.getDocuments() == null) {
-            user.setDocuments(new ArrayList<>());
+        List<Users> users = userRepository.findAll();
+
+        if (users.isEmpty()) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                    "No users found"
+            );
         }
 
-        user.getDocuments().add(document);
-        return userRepository.save(user);
+        return users.stream()
+                .map(this::toUserProfileDTO)
+                .toList();
     }
 
-    @Override
-    public List<DocumentInfo> getUserDocuments(String userId) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
+    private UserProfileResponseDTO toUserProfileDTO(Users user) {
+        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
+                .orElse(null);
 
-        return user.getDocuments() != null ? user.getDocuments() : new ArrayList<>();
+        UserProfile profile = userProfileRepository
+                .findByUserId(user.getId())
+                .orElse(null);
+
+        return UserProfileResponseDTO.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .roleCode(user.getRoleCode())
+                .roleName(role.getName())
+                .status(user.getStatus())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
+                .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
+                .gender(profile != null ? profile.getGender() : null)
+                .address(profile != null ? profile.getAddress() : null)
+                .emergencyContact(profile != null ? profile.getEmergencyContact() : null)
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 
-    @Override
-    public void deleteDocument(String userId, String documentId) throws CarehiveException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
 
-        if (user.getDocuments() != null && !user.getDocuments().isEmpty()) {
-            boolean removed = user.getDocuments().removeIf(doc -> doc.getDocumentId().equals(documentId));
-            if (removed) {
-                userRepository.save(user);
-            } else {
-                throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Document not found for this user");
-            }
-        }
-    }
 
 }

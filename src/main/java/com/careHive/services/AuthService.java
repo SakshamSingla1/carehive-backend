@@ -3,7 +3,8 @@ package com.careHive.services;
 import com.careHive.dtos.Auth.*;
 import com.careHive.dtos.Otp.OtpRequestDTO;
 import com.careHive.dtos.Password.*;
-import com.careHive.dtos.User.UserProfileDTO;
+import com.careHive.dtos.User.UserProfileRequestDTO;
+import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.exceptions.CarehiveException;
 
 public interface AuthService {
@@ -25,7 +26,7 @@ public interface AuthService {
 
     String changePassword(String authorizationHeader,ChangePasswordDTO dto) throws CarehiveException;
 
-    UserProfileDTO getCurrentUser(String authorizationHeader) throws CarehiveException;
+    UserProfileResponseDTO getCurrentUser(String authorizationHeader) throws CarehiveException;
 
-    UserProfileDTO updateCurrentUser(String authorizationHeader, UpdateUserProfileDTO dto) throws CarehiveException;
+    UserProfileResponseDTO updateCurrentUser(String authorizationHeader, UserProfileRequestDTO dto) throws CarehiveException;
 }

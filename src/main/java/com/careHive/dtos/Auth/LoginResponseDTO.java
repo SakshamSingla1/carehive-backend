@@ -3,6 +3,7 @@ package com.careHive.dtos.Auth;
 import com.careHive.dtos.ColorTheme.ColorThemeResponseDTO;
 import com.careHive.entities.ColorTheme;
 import com.careHive.entities.NavLink;
+import com.careHive.enums.StatusEnum;
 import com.careHive.enums.VerificationStatusEnum;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,10 @@ public class LoginResponseDTO {
     private String email;
     private String role;
     private String token;
-    private VerificationStatusEnum verified;
-    private VerificationStatusEnum caretakerStatus;
-
-    private List<ColorTheme> themes;       // ← all themes for this role
-    private ColorTheme defaultTheme;        // ← default theme for usage
-
+    private StatusEnum status;
+    private VerificationStatusEnum emailVerified;
+    private VerificationStatusEnum phoneVerified;
+    private List<ColorTheme> themes;
+    private ColorTheme defaultTheme;
     private List<NavLink> navLinks;
 }
