@@ -23,7 +23,7 @@ public class BookingController {
     public ResponseEntity<ResponseModel<BookingResponseDTO>> createBooking(
             @RequestBody BookingRequestDTO bookingRequestDTO) throws CarehiveException {
         BookingResponseDTO response = bookingService.create(bookingRequestDTO);
-        return ApiResponse.respond(response, "Booking created successfully ✅", "Failed to create booking ❌");
+        return ApiResponse.respond(response, "Booking created successfully", "Failed to create booking");
     }
 
     @PutMapping("/{id}")
@@ -31,24 +31,24 @@ public class BookingController {
             @PathVariable String id,
             @RequestBody BookingRequestDTO bookingRequestDTO) throws CarehiveException {
         BookingResponseDTO response = bookingService.update(id, bookingRequestDTO);
-        return ApiResponse.respond(response, "Booking updated successfully ✅", "Failed to update booking ❌");
+        return ApiResponse.respond(response, "Booking updated successfully", "Failed to update booking");
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ResponseModel<BookingResponseDTO>> getBooking(@PathVariable String id) throws CarehiveException {
         BookingResponseDTO response = bookingService.getBooking(id);
-        return ApiResponse.respond(response, "Booking fetched successfully ✅", "Failed to fetch booking ❌");
+        return ApiResponse.respond(response, "Booking fetched successfully", "Failed to fetch booking");
     }
 
     @GetMapping
     public ResponseEntity<ResponseModel<List<BookingResponseDTO>>> getAllBookings() throws CarehiveException {
         List<BookingResponseDTO> response = bookingService.getAll();
-        return ApiResponse.respond(response, "Bookings fetched successfully ✅", "Failed to fetch bookings ❌");
+        return ApiResponse.respond(response, "Bookings fetched successfully", "Failed to fetch bookings");
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseModel<String>> deleteBooking(@PathVariable String id) throws CarehiveException {
         String response = bookingService.delete(id);
-        return ApiResponse.respond(response, "Booking deleted successfully ✅", "Failed to delete booking ❌");
+        return ApiResponse.respond(response, "Booking deleted successfully", "Failed to delete booking");
     }
 }

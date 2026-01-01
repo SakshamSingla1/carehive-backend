@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class PhoneOtpRequestDTO {
-    private String phoneNumber;
+    private String phone;
 }

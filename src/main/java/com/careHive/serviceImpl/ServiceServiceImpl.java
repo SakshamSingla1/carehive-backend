@@ -6,7 +6,7 @@ import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.entities.CaretakerServices;
 import com.careHive.entities.Services;
-import com.careHive.entities.User;
+import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
@@ -136,7 +136,7 @@ public class ServiceServiceImpl implements ServiceService {
         if (requestDTO == null || requestDTO.getServiceIds() == null || requestDTO.getServiceIds().isEmpty()) {
             throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "ServiceIds cannot be null or empty");
         }
-        User caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER.name())
+        Users caretaker = userRepository.findByIdAndRoleCode(caretakerId, RoleEnum.CARETAKER)
                 .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not present"));
         List<Services> services =
                 serviceRepository.findAllById(requestDTO.getServiceIds());
@@ -175,7 +175,7 @@ public class ServiceServiceImpl implements ServiceService {
 
     // 🔔 NOTIFY CARETAKERS
     private void notifyCaretakers(Services service) {
-        userRepository.findAllByRoleCode(RoleEnum.CARETAKER.name())
+        userRepository.findAllByRoleCode(RoleEnum.CARETAKER)
                 .forEach(caretaker -> {
                     Map<String, Object> vars = new HashMap<>();
                     vars.put("caretakerName", caretaker.getName());

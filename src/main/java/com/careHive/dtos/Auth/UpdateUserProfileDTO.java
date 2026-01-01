@@ -10,6 +10,5 @@ public class UpdateUserProfileDTO {
     private String name;
     private String username;
     private String email;
-    private String phoneNumber;
-    private VerificationStatusEnum caretakerStatus;
+    private String phone;
 }

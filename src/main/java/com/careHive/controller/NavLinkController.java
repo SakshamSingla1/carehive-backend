@@ -22,7 +22,6 @@ public class NavLinkController {
     @Autowired
     private NavLinkService navLinkService;
 
-    // CREATE
     @PostMapping
     public ResponseEntity<ResponseModel<NavLinkResponseDTO>> createNavLink(
             @RequestBody NavLinkRequestDTO navLinkRequestDTO) throws CarehiveException {
@@ -31,7 +30,6 @@ public class NavLinkController {
         return ApiResponse.respond(responseDTO, "Nav Link created successfully", "Failed to create nav link");
     }
 
-    // UPDATE
     @PutMapping("/{role}/{index}")
     public ResponseEntity<ResponseModel<NavLinkResponseDTO>> updateNavLink(
             @PathVariable RoleEnum role,
@@ -42,7 +40,6 @@ public class NavLinkController {
         return ApiResponse.respond(responseDTO, "Nav Link updated successfully", "Failed to update nav link");
     }
 
-    // DELETE
     @DeleteMapping("/{role}/{index}")
     public ResponseEntity<ResponseModel<String>> deleteNavLink(
             @PathVariable RoleEnum role,
@@ -57,7 +54,6 @@ public class NavLinkController {
         );
     }
 
-    // GET ALL BY ROLE
     @GetMapping("/role/{role}")
     public ResponseEntity<ResponseModel<List<NavLinkResponseDTO>>> getNavLinks(@PathVariable RoleEnum role) {
         List<NavLinkResponseDTO> responseDTO = navLinkService.getNavLinks(role);
@@ -76,8 +72,6 @@ public class NavLinkController {
         return ApiResponse.respond(responseDTO, "Nav Links fetched successfully", "Failed to fetch nav links");
     }
 
-
-    // GET SINGLE
     @GetMapping("/{role}/{index}")
     public ResponseEntity<ResponseModel<NavLinkResponseDTO>> getNavLink(
             @PathVariable RoleEnum role,

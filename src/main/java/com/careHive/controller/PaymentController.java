@@ -20,9 +20,6 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    /**
-     * ✅ Create a new payment (triggered after booking completion)
-     */
     @PostMapping
     public ResponseEntity<ResponseModel<PaymentResponseDTO>> createPayment(@RequestBody PaymentRequestDTO dto) throws CarehiveException {
         try {
@@ -37,9 +34,6 @@ public class PaymentController {
         }
     }
 
-    /**
-     * ✅ Verify a payment transaction
-     */
     @PostMapping("/{paymentId}/verify")
     public ResponseEntity<ResponseModel<PaymentResponseDTO>> verifyPayment(
             @PathVariable String paymentId,
@@ -57,9 +51,6 @@ public class PaymentController {
         }
     }
 
-    /**
-     * ✅ Get a single payment by its ID
-     */
     @GetMapping("/{paymentId}")
     public ResponseEntity<ResponseModel<PaymentResponseDTO>> getPayment(@PathVariable String paymentId) throws CarehiveException {
         try {
@@ -70,18 +61,12 @@ public class PaymentController {
         }
     }
 
-    /**
-     * ✅ Get all payments associated with a specific user
-     */
     @GetMapping("/user/{userId}")
     public ResponseEntity<ResponseModel<List<PaymentResponseDTO>>> getPaymentsByUser(@PathVariable String userId) {
         List<PaymentResponseDTO> payments = paymentService.getPaymentsByUser(userId);
         return ApiResponse.respond(payments, "Payments fetched successfully","Payments not found");
     }
 
-    /**
-     * ✅ Get all payments associated with a specific caretaker
-     */
     @GetMapping("/caretaker/{caretakerId}")
     public ResponseEntity<ResponseModel<List<PaymentResponseDTO>>> getPaymentsByCaretaker(@PathVariable String caretakerId) {
         List<PaymentResponseDTO> payments = paymentService.getPaymentsByCaretaker(caretakerId);

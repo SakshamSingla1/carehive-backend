@@ -15,5 +15,5 @@ public interface ColorThemeRepository extends MongoRepository<ColorTheme, String
     List<ColorTheme> findByRole(RoleEnum role);
     Optional<ColorTheme> findByRoleAndThemeName(RoleEnum role, String themeName);
 
-    Page<ColorTheme> findAll(Pageable pageable); // <-- BUILT-IN, WORKS
+    Page<ColorTheme> findAll(Pageable pageable);
 }

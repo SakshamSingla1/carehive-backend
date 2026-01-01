@@ -4,7 +4,7 @@ import com.careHive.dtos.Booking.BookingRequestDTO;
 import com.careHive.dtos.Booking.BookingResponseDTO;
 import com.careHive.entities.Booking;
 import com.careHive.entities.Services;
-import com.careHive.entities.User;
+import com.careHive.entities.Users;
 import com.careHive.enums.BookingStatusEnum;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
@@ -35,12 +35,12 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponseDTO create(BookingRequestDTO dto) throws CarehiveException {
-        User elder = userRepository
-                .findByIdAndRoleCode(dto.getElderId(), RoleEnum.ELDER.name())
+        Users elder = userRepository
+                .findByIdAndRoleCode(dto.getElderId(), RoleEnum.ELDER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
-        User caretaker = userRepository
-                .findByIdAndRoleCode(dto.getCaretakerId(), RoleEnum.CARETAKER.name())
+        Users caretaker = userRepository
+                .findByIdAndRoleCode(dto.getCaretakerId(), RoleEnum.CARETAKER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
         Services service = serviceRepository.findById(dto.getServiceId())
@@ -162,13 +162,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void sendBookingStatusEmail(Booking booking) throws CarehiveException {
-        User elder = userRepository
-                .findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER.name())
+        Users elder = userRepository
+                .findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
 
-        User caretaker = userRepository
-                .findByIdAndRoleCode(booking.getCaretakerId(), RoleEnum.CARETAKER.name())
+        Users caretaker = userRepository
+                .findByIdAndRoleCode(booking.getCaretakerId(), RoleEnum.CARETAKER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
 
@@ -240,12 +240,12 @@ public class BookingServiceImpl implements BookingService {
 
     private BookingResponseDTO mapToResponseDTO(Booking booking)
             throws CarehiveException {
-        User elder = userRepository
-                .findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER.name())
+        Users elder = userRepository
+                .findByIdAndRoleCode(booking.getElderId(), RoleEnum.ELDER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Elder not found"));
-        User caretaker = userRepository
-                .findByIdAndRoleCode(booking.getCaretakerId(), RoleEnum.CARETAKER.name())
+        Users caretaker = userRepository
+                .findByIdAndRoleCode(booking.getCaretakerId(), RoleEnum.CARETAKER)
                 .orElseThrow(() -> new CarehiveException(
                         ExceptionCodeEnum.PROFILE_NOT_FOUND, "Caretaker not found"));
         Services service = serviceRepository.findById(booking.getServiceId())

@@ -23,9 +23,6 @@ public class ColorThemeController {
 
     private final ColorThemeService colorThemeService;
 
-    // ---------------------------------------------------------
-    // CREATE THEME
-    // ---------------------------------------------------------
     @PostMapping
     public ResponseEntity<ResponseModel<ColorThemeResponseDTO>> createTheme(
             @RequestBody ColorThemeRequestDTO dto) throws CarehiveException {
@@ -39,9 +36,6 @@ public class ColorThemeController {
         );
     }
 
-    // ---------------------------------------------------------
-    // UPDATE THEME
-    // ---------------------------------------------------------
     @PutMapping("/{id}")
     public ResponseEntity<ResponseModel<ColorThemeResponseDTO>> updateTheme(
             @PathVariable String id,
@@ -56,9 +50,6 @@ public class ColorThemeController {
         );
     }
 
-    // ---------------------------------------------------------
-    // GET ONE THEME BY ROLE + THEME NAME
-    // ---------------------------------------------------------
     @GetMapping("/{role}/{themeName}")
     public ResponseEntity<ResponseModel<ColorThemeResponseDTO>> getThemeByRoleAndName(
             @PathVariable RoleEnum role,
@@ -73,9 +64,6 @@ public class ColorThemeController {
         );
     }
 
-    // ---------------------------------------------------------
-    // GET ALL THEMES OF A ROLE
-    // ---------------------------------------------------------
     @GetMapping("/role/{role}")
     public ResponseEntity<ResponseModel<List<ColorThemeResponseDTO>>> getThemesByRole(
             @PathVariable RoleEnum role) {
@@ -89,9 +77,6 @@ public class ColorThemeController {
         );
     }
 
-    // ---------------------------------------------------------
-    // GET ALL THEMES
-    // ---------------------------------------------------------
     @GetMapping
     public ResponseEntity<ResponseModel<Page<ColorThemeResponseDTO>>> getAllThemes(Pageable pageable) {
 
@@ -104,9 +89,6 @@ public class ColorThemeController {
         );
     }
 
-    // ---------------------------------------------------------
-    // DELETE THEME
-    // ---------------------------------------------------------
     @DeleteMapping("/{id}")
     public ResponseEntity<ResponseModel<String>> deleteTheme(
             @PathVariable String id) throws CarehiveException {
