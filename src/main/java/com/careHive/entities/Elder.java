@@ -1,29 +1,30 @@
 package com.careHive.entities;
 
-import com.careHive.enums.GenderEnum;
+import com.careHive.enums.MobilityLevelEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Document(collection = "user-profiles")
-public class UserProfile {
+@Document(collection = "elders")
+public class Elder {
     @Id
     private String id;
+    @Indexed(unique = true)
     private String userId;
-    private LocalDate dateOfBirth;
-    private GenderEnum gender;
-    private Address address;
-    private EmergencyContact emergencyContact;
+    private List<String> medicalConditions;
+    private MobilityLevelEnum mobilityLevel;
+    private Boolean requiresMedication;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

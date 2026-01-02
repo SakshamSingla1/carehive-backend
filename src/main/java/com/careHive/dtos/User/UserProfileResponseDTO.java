@@ -1,11 +1,9 @@
 package com.careHive.dtos.User;
 
+import com.careHive.dtos.Elder.ElderDTO;
 import com.careHive.entities.Address;
 import com.careHive.entities.EmergencyContact;
-import com.careHive.enums.GenderEnum;
-import com.careHive.enums.RoleEnum;
-import com.careHive.enums.StatusEnum;
-import com.careHive.enums.VerificationStatusEnum;
+import com.careHive.enums.*;
 import lombok.Builder;
 import lombok.Data;
 
@@ -30,6 +28,7 @@ public class UserProfileResponseDTO {
     private GenderEnum gender;
     private Address address;
     private EmergencyContact emergencyContact;
+    private ElderDTO elder;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

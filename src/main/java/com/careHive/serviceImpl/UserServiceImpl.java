@@ -1,15 +1,14 @@
 package com.careHive.serviceImpl;
 
 import com.careHive.dtos.User.UserProfileResponseDTO;
+import com.careHive.entities.Elder;
 import com.careHive.entities.Role;
 import com.careHive.entities.UserProfile;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
 import com.careHive.exceptions.CarehiveException;
-import com.careHive.repositories.RoleRepository;
-import com.careHive.repositories.UserProfileRepository;
-import com.careHive.repositories.UserRepository;
+import com.careHive.repositories.*;
 import com.careHive.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,10 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserProfileRepository userProfileRepository;
+    private final ElderRepository elderRepository;
     private final Helper helper;
+    private final OtpRepository otpRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Override
     public List<UserProfileResponseDTO> getAllUsers() throws CarehiveException {
@@ -45,14 +47,31 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUserByID(String authorizationHeader) throws CarehiveException {
+
         String email = helper.extractEmailFromHeader(authorizationHeader);
+
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
-         if (user.getRoleCode() == RoleEnum.ADMIN) {
-             throw new CarehiveException(ExceptionCodeEnum.OPERATION_NOT_ALLOWED, "Admin users cannot be deleted");
-         }
-        userProfileRepository.findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new CarehiveException(
+                                ExceptionCodeEnum.PROFILE_NOT_FOUND,
+                                "User not found"
+                        )
+                );
+        if (user.getRoleCode() == RoleEnum.ADMIN) {
+            throw new CarehiveException(
+                    ExceptionCodeEnum.OPERATION_NOT_ALLOWED,
+                    "Admin users cannot be deleted"
+            );
+        }
+        String userId = user.getId();
+        if (user.getRoleCode() == RoleEnum.ELDER) {
+            elderRepository.deleteByUserId(userId);
+        }
+        userProfileRepository.findByUserId(userId)
                 .ifPresent(userProfileRepository::delete);
+//        familyMemberRepository.deleteByUserIdOrElderId(userId, userId);
+        otpRepository.deleteByEmail(user.getEmail());
+        passwordResetTokenRepository.deleteByEmail(user.getEmail());
         userRepository.delete(user);
     }
 
