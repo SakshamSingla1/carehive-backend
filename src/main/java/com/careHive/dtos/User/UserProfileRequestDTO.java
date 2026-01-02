@@ -1,5 +1,6 @@
 package com.careHive.dtos.User;
 
+import com.careHive.dtos.Elder.ElderDTO;
 import com.careHive.entities.Address;
 import com.careHive.entities.EmergencyContact;
 import com.careHive.enums.GenderEnum;
@@ -13,4 +14,5 @@ public class UserProfileRequestDTO {
     private GenderEnum gender;
     private Address address;
     private EmergencyContact emergencyContact;
+    private ElderDTO elder;
 }

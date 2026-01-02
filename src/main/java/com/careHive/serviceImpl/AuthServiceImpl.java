@@ -1,6 +1,7 @@
 package com.careHive.serviceImpl;
 
 import com.careHive.dtos.Auth.*;
+import com.careHive.dtos.Elder.ElderDTO;
 import com.careHive.dtos.Otp.OtpRequestDTO;
 import com.careHive.dtos.Password.ChangePasswordDTO;
 import com.careHive.dtos.Password.PasswordResetConfirmDTO;
@@ -10,6 +11,7 @@ import com.careHive.dtos.User.UserProfileRequestDTO;
 import com.careHive.dtos.User.UserProfileResponseDTO;
 import com.careHive.entities.*;
 import com.careHive.enums.ExceptionCodeEnum;
+import com.careHive.enums.RoleEnum;
 import com.careHive.enums.StatusEnum;
 import com.careHive.enums.VerificationStatusEnum;
 import com.careHive.exceptions.CarehiveException;
@@ -44,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final NavLinkRepository navLinkRepository;
     private final Helper helper;
     private final UserProfileRepository userProfileRepository;
+    private final ElderRepository elderRepository;
 
     @Override
     public AuthResponseDTO register(AuthRegisterDTO registerDTO) throws CarehiveException {
@@ -342,49 +345,65 @@ public class AuthServiceImpl implements AuthService {
                         "User not found"
                 ));
 
-        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
-                .orElseThrow(() -> new CarehiveException(
-                        ExceptionCodeEnum.BAD_REQUEST,
-                        "Role not found"
-                ));
+        String roleName = roleRepository
+                .findByEnumCode(user.getRoleCode().name())
+                .map(Role::getName)
+                .orElse(null);
 
         UserProfile profile = userProfileRepository
                 .findByUserId(user.getId())
                 .orElse(null);
 
+        ElderDTO elderDTO = null;
+
+        if (user.getRoleCode() == RoleEnum.ELDER) {
+
+            Elder elder = elderRepository
+                    .findByUserId(user.getId())
+                    .orElse(null);
+
+            if (elder != null) {
+                elderDTO = ElderDTO.builder()
+                        .medicalConditions(elder.getMedicalConditions())
+                        .mobilityLevel(elder.getMobilityLevel())
+                        .requiresMedication(elder.getRequiresMedication())
+                        .build();
+            }
+        }
+
         return UserProfileResponseDTO.builder()
+                // USER
                 .id(user.getId())
                 .name(user.getName())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .roleCode(user.getRoleCode())
-                .roleName(role.getName())
+                .roleName(roleName)
                 .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
+
+                // PROFILE
                 .dateOfBirth(profile != null ? profile.getDateOfBirth() : null)
                 .gender(profile != null ? profile.getGender() : null)
                 .address(profile != null ? profile.getAddress() : null)
                 .emergencyContact(profile != null ? profile.getEmergencyContact() : null)
+
+                // ELDER
+                .elder(elderDTO)
+
+                // AUDIT
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
     @Override
-    public UserProfileResponseDTO updateCurrentUser(
-            String authorizationHeader,
-            UserProfileRequestDTO dto
-    ) throws CarehiveException {
-
+    public UserProfileResponseDTO updateCurrentUser(String authorizationHeader, UserProfileRequestDTO dto) throws CarehiveException {
         String email = helper.extractEmailFromHeader(authorizationHeader);
-
         Users user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CarehiveException(
-                        ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"
-                ));
-
+                .orElseThrow(() -> new CarehiveException(ExceptionCodeEnum.PROFILE_NOT_FOUND, "User not found"));
         UserProfile profile = userProfileRepository
                 .findByUserId(user.getId())
                 .orElse(
@@ -393,22 +412,31 @@ public class AuthServiceImpl implements AuthService {
                                 .createdAt(LocalDateTime.now())
                                 .build()
                 );
-
-        if (dto.getDateOfBirth() != null)
-            profile.setDateOfBirth(dto.getDateOfBirth());
-
-        if (dto.getGender() != null)
-            profile.setGender(dto.getGender());
-
-        if (dto.getAddress() != null)
-            profile.setAddress(dto.getAddress());
-
-        if (dto.getEmergencyContact() != null)
-            profile.setEmergencyContact(dto.getEmergencyContact());
-
+        if (dto.getDateOfBirth() != null) profile.setDateOfBirth(dto.getDateOfBirth());
+        if (dto.getGender() != null) profile.setGender(dto.getGender());
+        if (dto.getAddress() != null) profile.setAddress(dto.getAddress());
+        if (dto.getEmergencyContact() != null) profile.setEmergencyContact(dto.getEmergencyContact());
         profile.setUpdatedAt(LocalDateTime.now());
         userProfileRepository.save(profile);
 
+        if (dto.getElder() != null) {
+            if (user.getRoleCode() != RoleEnum.ELDER) {
+                throw new CarehiveException(ExceptionCodeEnum.BAD_REQUEST, "Only elder users can update elder information");
+            }
+            Elder elder = elderRepository
+                    .findByUserId(user.getId())
+                    .orElse(
+                            Elder.builder()
+                                    .userId(user.getId())
+                                    .createdAt(LocalDateTime.now())
+                                    .build()
+                    );
+            if (dto.getElder().getMedicalConditions() != null) elder.setMedicalConditions(dto.getElder().getMedicalConditions());
+            if (dto.getElder().getMobilityLevel() != null) elder.setMobilityLevel(dto.getElder().getMobilityLevel());
+            if (dto.getElder().getRequiresMedication() != null) elder.setRequiresMedication(dto.getElder().getRequiresMedication());
+            elder.setUpdatedAt(LocalDateTime.now());
+            elderRepository.save(elder);
+        }
         return getCurrentUser(authorizationHeader);
     }
 
