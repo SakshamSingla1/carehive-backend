@@ -3,6 +3,7 @@ package com.careHive.controller;
 import com.careHive.dtos.NavLinks.NavLinkRequestDTO;
 import com.careHive.dtos.NavLinks.NavLinkResponseDTO;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/nav-link")
+@RequestMapping("api/v1/navlinks")
 public class NavLinkController {
 
     @Autowired
@@ -66,9 +67,10 @@ public class NavLinkController {
             @RequestParam(required = false) RoleEnum role,
             @RequestParam(required = false) String search,
             @RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
-            @RequestParam(required = false, defaultValue = "desc") String sortDir
-    ) {
-        Page<NavLinkResponseDTO> responseDTO = navLinkService.getAllNavLinks(pageable, role, search, sortBy, sortDir);
+            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) StatusEnum status
+            ) {
+        Page<NavLinkResponseDTO> responseDTO = navLinkService.getAllNavLinks(pageable, role, search, status, sortBy, sortDir);
         return ApiResponse.respond(responseDTO, "Nav Links fetched successfully", "Failed to fetch nav links");
     }
 

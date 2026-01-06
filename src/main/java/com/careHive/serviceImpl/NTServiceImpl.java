@@ -5,6 +5,7 @@ import com.careHive.dtos.NotificationTemplate.NTRequestDTO;
 import com.careHive.dtos.NotificationTemplate.NTResponseDTO;
 import com.careHive.entities.NavLink;
 import com.careHive.entities.NotificationTemplate;
+import com.careHive.entities.Role;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
 import com.careHive.enums.StatusEnum;
@@ -46,7 +47,7 @@ public class NTServiceImpl implements NTService {
                 .subject(ntRequestDTO.getSubject())
                 .body(ntRequestDTO.getBody())
                 .type(ntRequestDTO.getType())
-                .active(StatusEnum.ACTIVE)
+                .status(StatusEnum.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -62,7 +63,7 @@ public class NTServiceImpl implements NTService {
 
         existingTemplate.setSubject(ntRequestDTO.getSubject());
         existingTemplate.setBody(ntRequestDTO.getBody());
-        existingTemplate.setActive(ntRequestDTO.getActive());
+        existingTemplate.setStatus(ntRequestDTO.getStatus());
         existingTemplate.setUpdatedAt(LocalDateTime.now());
 
         ntRepository.save(existingTemplate);
@@ -89,26 +90,29 @@ public class NTServiceImpl implements NTService {
 
     @Override
     public Page<NTResponseDTO> getAllNotificationTemplates(
-            Pageable pageable, String search, String sortBy, String sortDir) {
-        Pageable p = PageRequest.of(
-                pageable == null ? 0 : pageable.getPageNumber(),
-                pageable == null ? 20 : pageable.getPageSize(),
-                Sort.by("desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC,
-                        (sortBy == null || sortBy.isBlank()) ? "index" : sortBy)
+            Pageable pageable, String search, StatusEnum status, String sortBy, String sortDir) {
+        Sort sort = Sort.by("desc".equalsIgnoreCase(sortDir)
+        ? Sort.Direction.DESC : Sort.Direction.ASC,
+                (sortBy != null && !sortBy.isBlank()) ? sortBy : "createdAt");
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
         );
-        Query q = new Query().with(p);
-        if (search != null && !search.isBlank()) {
-            String r = ".*" + Pattern.quote(search) + ".*";
-            q.addCriteria(new Criteria().orOperator(
-                    Criteria.where("name").regex(r, "i")
-            ));
+        boolean hasStatus = status != null;
+        boolean hasSearch = search != null && !search.isBlank();
+
+        Page<NotificationTemplate> notificationTemplates;
+        if( hasSearch && hasStatus){
+            notificationTemplates = ntRepository.searchByStatusAndSearch(search,status,sortedPageable);
+        }else if(hasSearch){
+            notificationTemplates = ntRepository.SearchByText(search,sortedPageable);
+        }else if(hasStatus) {
+            notificationTemplates = ntRepository.findByStatus(status, sortedPageable);
+        }else{
+            notificationTemplates = ntRepository.findAll(sortedPageable);
         }
-        long total = mongoTemplate.count(q, NotificationTemplate.class);
-        return new PageImpl<>(
-                mongoTemplate.find(q, NotificationTemplate.class)
-                        .stream().map(this::mapToResponseDTO).toList(),
-                p, total
-        );
+        return notificationTemplates.map(this::mapToResponseDTO);
     }
 
     @Override
@@ -132,7 +136,7 @@ public class NTServiceImpl implements NTService {
                 .subject(template.getSubject())
                 .body(template.getBody())
                 .type(template.getType())
-                .active(template.getActive())
+                .status(template.getStatus())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())
                 .build();

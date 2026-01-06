@@ -1,6 +1,7 @@
 package com.careHive.entities;
 
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class ColorTheme {
     private RoleEnum role;
     private String themeName;
     private ColorPalette palette;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;

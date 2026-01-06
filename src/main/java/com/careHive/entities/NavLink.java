@@ -1,6 +1,7 @@
 package com.careHive.entities;
 
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,10 +19,11 @@ import java.time.LocalDateTime;
 public class NavLink {
     @Id
     private String id;
-    private RoleEnum roleCode;
+    private RoleEnum role;
     private String index;
     private String name;
     private String path;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

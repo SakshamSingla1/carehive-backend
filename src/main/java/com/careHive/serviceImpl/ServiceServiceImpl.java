@@ -168,8 +168,6 @@ public class ServiceServiceImpl implements ServiceService {
             String serviceId,
             Pageable pageable
     ) {
-
-        // Step 1: Paginated caretaker-service mapping
         Page<CaretakerServices> csPage =
                 caretakerServicesRepository.findByServiceId(serviceId, pageable);
 
@@ -181,18 +179,12 @@ public class ServiceServiceImpl implements ServiceService {
         if (caretakerIds.isEmpty()) {
             return Page.empty(pageable);
         }
-
-        // Step 2: Fetch caretakers
         Map<String, Users> caretakers =
                 userRepository.findByIdIn(caretakerIds)
                         .stream()
                         .collect(Collectors.toMap(Users::getId, u -> u));
-
-        // Step 3: Fetch ALL services offered by these caretakers
         List<CaretakerServices> allMappings =
                 caretakerServicesRepository.findByCaretakerIdIn(caretakerIds);
-
-        // Step 4: Fetch service names
         Set<String> serviceIds = allMappings.stream()
                 .map(CaretakerServices::getServiceId)
                 .collect(Collectors.toSet());
@@ -201,8 +193,6 @@ public class ServiceServiceImpl implements ServiceService {
                 serviceRepository.findByIdIn(new ArrayList<>(serviceIds))
                         .stream()
                         .collect(Collectors.toMap(Services::getId, s -> s));
-
-        // Step 5: Group services by caretaker
         Map<String, List<CaretakerServiceInfoDTO>> servicesByCaretaker =
                 allMappings.stream()
                         .collect(Collectors.groupingBy(
@@ -217,8 +207,6 @@ public class ServiceServiceImpl implements ServiceService {
                                                         .build(),
                                         Collectors.toList())
                         ));
-
-        // Step 6: Build final paged DTO
         return csPage.map(cs -> {
             Users user = caretakers.get(cs.getCaretakerId());
 

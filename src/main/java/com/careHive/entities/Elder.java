@@ -1,6 +1,7 @@
 package com.careHive.entities;
 
 import com.careHive.enums.MobilityLevelEnum;
+import com.careHive.enums.StatusEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class Elder {
     private List<String> medicalConditions;
     private MobilityLevelEnum mobilityLevel;
     private Boolean requiresMedication;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -5,6 +5,7 @@ import com.careHive.dtos.CaretakerServices.CSResponseDTO;
 import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -76,10 +77,11 @@ public class ServiceController {
             Pageable pageable,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String sortDir) throws CarehiveException {
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) StatusEnum status) throws CarehiveException {
 
         Page<ServiceResponseDTO> response =
-                serviceService.getAllServices(pageable, search, sortBy, sortDir);
+                serviceService.getAllServices(pageable, search, sortBy, sortDir, status);
 
         return ApiResponse.respond(response,
                 "Services fetched successfully",

@@ -3,6 +3,7 @@ package com.careHive.services;
 import com.careHive.dtos.ColorTheme.ColorThemeRequestDTO;
 import com.careHive.dtos.ColorTheme.ColorThemeResponseDTO;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,14 @@ public interface ColorThemeService {
     // ---------------------------
     List<ColorThemeResponseDTO> getThemesByRole(RoleEnum role);
 
-    Page<ColorThemeResponseDTO> getAllThemes(Pageable pageable);
+    Page<ColorThemeResponseDTO> getAllThemes(
+            String search,
+            String sortBy,
+            String sortDir,
+            StatusEnum status,
+            RoleEnum role,
+            Pageable pageable
+    );
 
     String deleteTheme(String id) throws CarehiveException;
 }

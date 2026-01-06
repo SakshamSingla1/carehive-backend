@@ -8,6 +8,7 @@ import com.careHive.payload.ResponseModel;
 import com.careHive.services.ConfigurationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,11 +38,19 @@ public class ConfigurationController {
 
     @GetMapping
     public ResponseEntity<ResponseModel<Page<ConfigurationResponseDTO>>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ){
-        Page<ConfigurationResponseDTO> responseList = configurationService.getAllPaginated(page,size);
-        return ApiResponse.respond(responseList,"Configurations fetched successfully","Failed to fetch configurations");
+            Pageable pageable,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search
+    ) {
+        Page<ConfigurationResponseDTO> responseList =
+                configurationService.getAllPaginated(pageable, sortBy, sortDir, search);
+
+        return ApiResponse.respond(
+                responseList,
+                "Configurations fetched successfully",
+                "Failed to fetch configurations"
+        );
     }
 
     @DeleteMapping("/{id}")
