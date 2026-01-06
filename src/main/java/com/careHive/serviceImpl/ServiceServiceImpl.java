@@ -2,6 +2,8 @@ package com.careHive.serviceImpl;
 
 import com.careHive.dtos.CaretakerServices.CSRequestDTO;
 import com.careHive.dtos.CaretakerServices.CSResponseDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerServiceInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.entities.CaretakerServices;
@@ -9,6 +11,7 @@ import com.careHive.entities.Services;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.CaretakerServicesRepository;
 import com.careHive.repositories.ServiceRepository;
@@ -17,17 +20,11 @@ import com.careHive.services.NTService;
 import com.careHive.services.ServiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ServiceServiceImpl implements ServiceService {
@@ -40,9 +37,6 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Autowired
     private NTService ntService;
-
-    @Autowired
-    private MongoTemplate mongoTemplate;
 
     @Autowired
     private CaretakerServicesRepository caretakerServicesRepository;
@@ -102,33 +96,29 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     public Page<ServiceResponseDTO> getAllServices(
-            Pageable pageable, String search, String sortBy, String sortDir) {
-        Pageable p = PageRequest.of(
-                pageable == null ? 0 : pageable.getPageNumber(),
-                pageable == null ? 20 : pageable.getPageSize(),
-                Sort.by(
-                        "desc".equalsIgnoreCase(sortDir)
-                                ? Sort.Direction.DESC
-                                : Sort.Direction.ASC,
-                        (sortBy == null || sortBy.isBlank()) ? "name" : sortBy
-                )
+            Pageable pageable, String search, String sortBy, String sortDir, StatusEnum status) {
+        Sort sort = Sort.by("desc".equalsIgnoreCase(sortDir)
+        ? Sort.Direction.DESC : Sort.Direction.ASC,
+                (sortBy != null && !sortBy.isBlank()) ? sortBy : "createdAt");
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
         );
-        Query q = new Query().with(p);
-        if (search != null && !search.isBlank()) {
-            String regex = ".*" + Pattern.quote(search) + ".*";
-            q.addCriteria(
-                    Criteria.where("name").regex(regex, "i")
-            );
+        Page<Services> services;
+        boolean hasSearch = search != null  && !search.trim().isEmpty();
+        boolean hasStatus = status != null;
+
+        if(hasSearch && hasStatus){
+            services = serviceRepository.searchByTextAndStatus(search.trim(), status, sortedPageable);
+        }else if(hasSearch){
+            services = serviceRepository.searchServices(search.trim(), sortedPageable);
+        }else if(hasStatus){
+            services = serviceRepository.findByStatus(status, sortedPageable);
+        }else{
+            services = serviceRepository.findAll(sortedPageable);
         }
-        long total = mongoTemplate.count(q, Services.class);
-        return new PageImpl<>(
-                mongoTemplate.find(q, Services.class)
-                        .stream()
-                        .map(this::mapToResponseDTO)
-                        .toList(),
-                p,
-                total
-        );
+        return services.map(this:: mapToResponseDTO);
     }
 
     @Override
@@ -173,7 +163,79 @@ public class ServiceServiceImpl implements ServiceService {
         return response;
     }
 
-    // 🔔 NOTIFY CARETAKERS
+    @Override
+    public Page<CaretakerInfoDTO> getCaretakersByServiceId(
+            String serviceId,
+            Pageable pageable
+    ) {
+
+        // Step 1: Paginated caretaker-service mapping
+        Page<CaretakerServices> csPage =
+                caretakerServicesRepository.findByServiceId(serviceId, pageable);
+
+        List<String> caretakerIds = csPage.getContent()
+                .stream()
+                .map(CaretakerServices::getCaretakerId)
+                .toList();
+
+        if (caretakerIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Step 2: Fetch caretakers
+        Map<String, Users> caretakers =
+                userRepository.findByIdIn(caretakerIds)
+                        .stream()
+                        .collect(Collectors.toMap(Users::getId, u -> u));
+
+        // Step 3: Fetch ALL services offered by these caretakers
+        List<CaretakerServices> allMappings =
+                caretakerServicesRepository.findByCaretakerIdIn(caretakerIds);
+
+        // Step 4: Fetch service names
+        Set<String> serviceIds = allMappings.stream()
+                .map(CaretakerServices::getServiceId)
+                .collect(Collectors.toSet());
+
+        Map<String, Services> serviceMap =
+                serviceRepository.findByIdIn(new ArrayList<>(serviceIds))
+                        .stream()
+                        .collect(Collectors.toMap(Services::getId, s -> s));
+
+        // Step 5: Group services by caretaker
+        Map<String, List<CaretakerServiceInfoDTO>> servicesByCaretaker =
+                allMappings.stream()
+                        .collect(Collectors.groupingBy(
+                                CaretakerServices::getCaretakerId,
+                                Collectors.mapping(cs ->
+                                                CaretakerServiceInfoDTO.builder()
+                                                        .serviceId(cs.getServiceId())
+                                                        .serviceName(
+                                                                serviceMap.get(cs.getServiceId()).getName()
+                                                        )
+                                                        .status(cs.getStatus())
+                                                        .build(),
+                                        Collectors.toList())
+                        ));
+
+        // Step 6: Build final paged DTO
+        return csPage.map(cs -> {
+            Users user = caretakers.get(cs.getCaretakerId());
+
+            return CaretakerInfoDTO.builder()
+                    .caretakerId(user.getId())
+                    .caretakerName(user.getName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .experienceYears("0")
+                    .services(
+                            servicesByCaretaker.getOrDefault(user.getId(), List.of())
+                    )
+                    .ratings("0") // plug rating later
+                    .build();
+        });
+    }
+
     private void notifyCaretakers(Services service) {
         userRepository.findAllByRoleCode(RoleEnum.CARETAKER)
                 .forEach(caretaker -> {
@@ -197,7 +259,6 @@ public class ServiceServiceImpl implements ServiceService {
                 });
     }
 
-    // 🔹 MAPPER
     private ServiceResponseDTO mapToResponseDTO(Services service) {
         return ServiceResponseDTO.builder()
                 .id(service.getId())

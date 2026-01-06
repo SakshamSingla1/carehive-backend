@@ -2,6 +2,7 @@ package com.careHive.controller;
 
 import com.careHive.dtos.CaretakerServices.CSRequestDTO;
 import com.careHive.dtos.CaretakerServices.CSResponseDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.exceptions.CarehiveException;
@@ -95,5 +96,17 @@ public class ServiceController {
         return ApiResponse.respond(responseDTOS,
                 "Services assigned successfully",
                 "Failed to assign services");
+    }
+
+    @GetMapping("/{serviceId}/caretakers")
+    public ResponseEntity<ResponseModel<Page<CaretakerInfoDTO>>> getCaretakers(
+            @PathVariable String serviceId,
+            Pageable pageable
+    ) {
+        return ApiResponse.respond(
+                serviceService.getCaretakersByServiceId(serviceId, pageable),
+                "Caretakers fetched successfully",
+                "Failed to fetch caretakers"
+        );
     }
 }
