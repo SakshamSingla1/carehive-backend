@@ -7,14 +7,14 @@ import com.careHive.entities.UserProfile;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.*;
 import com.careHive.services.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.careHive.utils.Helper;
-
-import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -29,20 +29,50 @@ public class UserServiceImpl implements UserService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Override
-    public List<UserProfileResponseDTO> getAllUsers() throws CarehiveException {
+    public Page<UserProfileResponseDTO> findAll(
+            StatusEnum status,
+            RoleEnum role,
+            String search,
+            String sortBy,
+            String sortDir,
+            Pageable pageable
+    ) throws CarehiveException {
 
-        List<Users> users = userRepository.findAll();
+        // ✅ Sorting
+        Sort sort = Sort.by(
+                sortDir != null && sortDir.equalsIgnoreCase("desc")
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC,
+                sortBy != null ? sortBy : "createdAt"
+        );
 
-        if (users.isEmpty()) {
-            throw new CarehiveException(
-                    ExceptionCodeEnum.PROFILE_NOT_FOUND,
-                    "No users found"
-            );
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        Page<Users> usersPage;
+
+        boolean hasSearch = search != null && !search.isBlank();
+
+        if (hasSearch && role != null && status != null) {
+            usersPage = userRepository.searchUsers(search, role, status, sortedPageable);
+        } else if (hasSearch && role != null) {
+            usersPage = userRepository.searchUsersByRole(search, role, sortedPageable);
+        } else if (hasSearch) {
+            usersPage = userRepository.searchUsers(search, sortedPageable);
+        } else if (role != null && status != null) {
+            usersPage = userRepository.findByRoleCodeAndStatus(role, status, sortedPageable);
+        } else if (role != null) {
+            usersPage = userRepository.findByRoleCode(role, sortedPageable);
+        } else if (status != null) {
+            usersPage = userRepository.findByStatus(status, sortedPageable);
+        } else {
+            usersPage = userRepository.findAll(sortedPageable);
         }
 
-        return users.stream()
-                .map(this::toUserProfileDTO)
-                .toList();
+        return usersPage.map(this::toUserProfileDTO);
     }
 
     @Override
@@ -57,27 +87,32 @@ public class UserServiceImpl implements UserService {
                                 "User not found"
                         )
                 );
+
         if (user.getRoleCode() == RoleEnum.ADMIN) {
             throw new CarehiveException(
                     ExceptionCodeEnum.OPERATION_NOT_ALLOWED,
                     "Admin users cannot be deleted"
             );
         }
+
         String userId = user.getId();
+
         if (user.getRoleCode() == RoleEnum.ELDER) {
             elderRepository.deleteByUserId(userId);
         }
+
         userProfileRepository.findByUserId(userId)
                 .ifPresent(userProfileRepository::delete);
-//        familyMemberRepository.deleteByUserIdOrElderId(userId, userId);
+
         otpRepository.deleteByEmail(user.getEmail());
         passwordResetTokenRepository.deleteByEmail(user.getEmail());
+
         userRepository.delete(user);
     }
 
     private UserProfileResponseDTO toUserProfileDTO(Users user) {
-        Role role = roleRepository.findByEnumCode(user.getRoleCode().name())
-                .orElse(null);
+
+        Role role = roleRepository.findByEnumCode(user.getRoleCode().name()).orElse(null);
 
         UserProfile profile = userProfileRepository
                 .findByUserId(user.getId())
@@ -90,7 +125,7 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .roleCode(user.getRoleCode())
-                .roleName(role.getName())
+                .roleName(role != null ? role.getName() : null)
                 .status(user.getStatus())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
@@ -102,7 +137,4 @@ public class UserServiceImpl implements UserService {
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
-
-
-
 }
