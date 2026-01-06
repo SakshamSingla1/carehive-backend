@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ServiceRepository extends MongoRepository<Services, String> {
     Services findByName(String name);
@@ -40,4 +42,6 @@ public interface ServiceRepository extends MongoRepository<Services, String> {
         }
     """)
     Page<Services> searchServices(String search, Pageable pageable);
+
+    List<Services> findByIdIn(List<String> ids);
 }

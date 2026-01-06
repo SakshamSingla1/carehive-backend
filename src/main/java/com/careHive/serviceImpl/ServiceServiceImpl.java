@@ -2,6 +2,8 @@ package com.careHive.serviceImpl;
 
 import com.careHive.dtos.CaretakerServices.CSRequestDTO;
 import com.careHive.dtos.CaretakerServices.CSResponseDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerServiceInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.entities.CaretakerServices;
@@ -18,17 +20,11 @@ import com.careHive.services.NTService;
 import com.careHive.services.ServiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ServiceServiceImpl implements ServiceService {
@@ -41,9 +37,6 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Autowired
     private NTService ntService;
-
-    @Autowired
-    private MongoTemplate mongoTemplate;
 
     @Autowired
     private CaretakerServicesRepository caretakerServicesRepository;
@@ -168,6 +161,67 @@ public class ServiceServiceImpl implements ServiceService {
             }
         }
         return response;
+    }
+
+    @Override
+    public Page<CaretakerInfoDTO> getCaretakersByServiceId(
+            String serviceId,
+            Pageable pageable
+    ) {
+        Page<CaretakerServices> csPage =
+                caretakerServicesRepository.findByServiceId(serviceId, pageable);
+
+        List<String> caretakerIds = csPage.getContent()
+                .stream()
+                .map(CaretakerServices::getCaretakerId)
+                .toList();
+
+        if (caretakerIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        Map<String, Users> caretakers =
+                userRepository.findByIdIn(caretakerIds)
+                        .stream()
+                        .collect(Collectors.toMap(Users::getId, u -> u));
+        List<CaretakerServices> allMappings =
+                caretakerServicesRepository.findByCaretakerIdIn(caretakerIds);
+        Set<String> serviceIds = allMappings.stream()
+                .map(CaretakerServices::getServiceId)
+                .collect(Collectors.toSet());
+
+        Map<String, Services> serviceMap =
+                serviceRepository.findByIdIn(new ArrayList<>(serviceIds))
+                        .stream()
+                        .collect(Collectors.toMap(Services::getId, s -> s));
+        Map<String, List<CaretakerServiceInfoDTO>> servicesByCaretaker =
+                allMappings.stream()
+                        .collect(Collectors.groupingBy(
+                                CaretakerServices::getCaretakerId,
+                                Collectors.mapping(cs ->
+                                                CaretakerServiceInfoDTO.builder()
+                                                        .serviceId(cs.getServiceId())
+                                                        .serviceName(
+                                                                serviceMap.get(cs.getServiceId()).getName()
+                                                        )
+                                                        .status(cs.getStatus())
+                                                        .build(),
+                                        Collectors.toList())
+                        ));
+        return csPage.map(cs -> {
+            Users user = caretakers.get(cs.getCaretakerId());
+
+            return CaretakerInfoDTO.builder()
+                    .caretakerId(user.getId())
+                    .caretakerName(user.getName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .experienceYears("0")
+                    .services(
+                            servicesByCaretaker.getOrDefault(user.getId(), List.of())
+                    )
+                    .ratings("0") // plug rating later
+                    .build();
+        });
     }
 
     private void notifyCaretakers(Services service) {

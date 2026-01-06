@@ -17,4 +17,5 @@ public interface UserRepository extends MongoRepository<Users, String> {
     Optional<Users> findByIdAndRoleCode(String id, RoleEnum roleCode);
     long countByRoleCode(RoleEnum roleCode);
     List<Users> findAllByRoleCode(RoleEnum roleCode);
+    List<Users> findByIdIn(List<String> ids);
 }

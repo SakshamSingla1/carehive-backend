@@ -2,6 +2,7 @@ package com.careHive.services;
 
 import com.careHive.dtos.CaretakerServices.CSRequestDTO;
 import com.careHive.dtos.CaretakerServices.CSResponseDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
 import com.careHive.enums.StatusEnum;
@@ -18,4 +19,5 @@ public interface ServiceService {
     ServiceResponseDTO getService(String id) throws CarehiveException;
     Page<ServiceResponseDTO> getAllServices(Pageable pageable, String search, String sortBy, String sortDir, StatusEnum status) throws CarehiveException;
     List<CSResponseDTO> assignServicesToCaretaker(String caretakerId,CSRequestDTO requestDTO) throws CarehiveException;
+    Page<CaretakerInfoDTO> getCaretakersByServiceId(String serviceId,Pageable pageable);
 }
