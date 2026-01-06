@@ -3,6 +3,7 @@ package com.careHive.services;
 import com.careHive.dtos.NavLinks.NavLinkRequestDTO;
 import com.careHive.dtos.NavLinks.NavLinkResponseDTO;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,7 @@ public interface NavLinkService {
     NavLinkResponseDTO updateNavLink(String roleIndex, RoleEnum role, NavLinkRequestDTO request) throws CarehiveException;
     void deleteNavLink(String roleIndex, RoleEnum role) throws CarehiveException;
     List<NavLinkResponseDTO> getNavLinks(RoleEnum role);
-    Page<NavLinkResponseDTO> getAllNavLinks(Pageable pageable, RoleEnum role, String search, String sortBy, String sortDir);
+    Page<NavLinkResponseDTO> getAllNavLinks(Pageable pageable, RoleEnum role, String search, StatusEnum status, String sortBy, String sortDir);
     NavLinkResponseDTO getNavLink(RoleEnum role, String roleIndex) throws CarehiveException;
 }
 

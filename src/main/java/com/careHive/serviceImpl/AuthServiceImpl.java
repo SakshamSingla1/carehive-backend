@@ -304,7 +304,7 @@ public class AuthServiceImpl implements AuthService {
                 .token("Bearer " + token)
                 .themes(themes)
                 .defaultTheme(defaultTheme)
-                .navLinks(navLinkRepository.findByRoleCode(user.getRoleCode()))
+                .navLinks(navLinkRepository.findByRole(user.getRoleCode()))
                 .build();
     }
 

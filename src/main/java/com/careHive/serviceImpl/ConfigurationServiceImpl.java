@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -65,10 +66,34 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     }
 
     @Override
-    public Page<ConfigurationResponseDTO> getAllPaginated(int page, int size) {
-        return configurationRepository
-                .findAll(PageRequest.of(page, size))
-                .map(this::toDTO);
+    public Page<ConfigurationResponseDTO> getAllPaginated(
+            Pageable pageable,
+            String sortBy,
+            String sortDir,
+            String search
+    ) {
+
+        Sort sort = Sort.by(
+                "desc".equalsIgnoreCase(sortDir)
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC,
+                (sortBy != null && !sortBy.isBlank()) ? sortBy : "createdAt"
+        );
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        Page<Configuration> configurations;
+
+        if (search != null && !search.isBlank()) {
+            configurations = configurationRepository.search(search, sortedPageable);
+        } else {
+            configurations = configurationRepository.findAll(sortedPageable);
+        }
+        return configurations.map(this::toDTO);
     }
 
     @Override

@@ -25,12 +25,13 @@ public class Booking {
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     private double durationHours;
     private double pricePerHour;
     private double totalAmount;
 
     private BookingStatusEnum status;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

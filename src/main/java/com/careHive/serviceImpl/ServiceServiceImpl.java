@@ -9,6 +9,7 @@ import com.careHive.entities.Services;
 import com.careHive.entities.Users;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.CaretakerServicesRepository;
 import com.careHive.repositories.ServiceRepository;
@@ -102,33 +103,29 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     public Page<ServiceResponseDTO> getAllServices(
-            Pageable pageable, String search, String sortBy, String sortDir) {
-        Pageable p = PageRequest.of(
-                pageable == null ? 0 : pageable.getPageNumber(),
-                pageable == null ? 20 : pageable.getPageSize(),
-                Sort.by(
-                        "desc".equalsIgnoreCase(sortDir)
-                                ? Sort.Direction.DESC
-                                : Sort.Direction.ASC,
-                        (sortBy == null || sortBy.isBlank()) ? "name" : sortBy
-                )
+            Pageable pageable, String search, String sortBy, String sortDir, StatusEnum status) {
+        Sort sort = Sort.by("desc".equalsIgnoreCase(sortDir)
+        ? Sort.Direction.DESC : Sort.Direction.ASC,
+                (sortBy != null && !sortBy.isBlank()) ? sortBy : "createdAt");
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
         );
-        Query q = new Query().with(p);
-        if (search != null && !search.isBlank()) {
-            String regex = ".*" + Pattern.quote(search) + ".*";
-            q.addCriteria(
-                    Criteria.where("name").regex(regex, "i")
-            );
+        Page<Services> services;
+        boolean hasSearch = search != null  && !search.trim().isEmpty();
+        boolean hasStatus = status != null;
+
+        if(hasSearch && hasStatus){
+            services = serviceRepository.searchByTextAndStatus(search.trim(), status, sortedPageable);
+        }else if(hasSearch){
+            services = serviceRepository.searchServices(search.trim(), sortedPageable);
+        }else if(hasStatus){
+            services = serviceRepository.findByStatus(status, sortedPageable);
+        }else{
+            services = serviceRepository.findAll(sortedPageable);
         }
-        long total = mongoTemplate.count(q, Services.class);
-        return new PageImpl<>(
-                mongoTemplate.find(q, Services.class)
-                        .stream()
-                        .map(this::mapToResponseDTO)
-                        .toList(),
-                p,
-                total
-        );
+        return services.map(this:: mapToResponseDTO);
     }
 
     @Override
@@ -173,7 +170,6 @@ public class ServiceServiceImpl implements ServiceService {
         return response;
     }
 
-    // 🔔 NOTIFY CARETAKERS
     private void notifyCaretakers(Services service) {
         userRepository.findAllByRoleCode(RoleEnum.CARETAKER)
                 .forEach(caretaker -> {
@@ -197,7 +193,6 @@ public class ServiceServiceImpl implements ServiceService {
                 });
     }
 
-    // 🔹 MAPPER
     private ServiceResponseDTO mapToResponseDTO(Services service) {
         return ServiceResponseDTO.builder()
                 .id(service.getId())

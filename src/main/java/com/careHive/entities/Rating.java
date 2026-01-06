@@ -23,4 +23,5 @@ public class Rating {
     private double rating;
     private String comment;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

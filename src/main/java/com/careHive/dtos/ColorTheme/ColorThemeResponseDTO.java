@@ -1,6 +1,7 @@
 package com.careHive.dtos.ColorTheme;
 
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class ColorThemeResponseDTO {
     private RoleEnum role;
     private String themeName;
     private ColorPaletteDTO palette;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;
