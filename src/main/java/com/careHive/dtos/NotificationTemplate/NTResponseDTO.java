@@ -15,7 +15,7 @@ public class NTResponseDTO {
     private String subject;
     private String body;
     private NotificationTypeEnum type;
-    private StatusEnum active;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

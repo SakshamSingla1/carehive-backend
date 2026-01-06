@@ -11,12 +11,15 @@ import com.careHive.entities.ColorPalette;
 import com.careHive.entities.ColorTheme;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.repositories.ColorThemeRepository;
 import com.careHive.services.ColorThemeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -43,6 +46,8 @@ public class ColorThemeServiceImpl implements ColorThemeService {
                 .role(dto.getRole())
                 .themeName(themeName)
                 .palette(mapPaletteDtoToEntity(dto.getPalette()))
+                .status(StatusEnum.ACTIVE)
+                .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .updatedBy(RoleEnum.ADMIN.name())
                 .build();
@@ -62,6 +67,7 @@ public class ColorThemeServiceImpl implements ColorThemeService {
         theme.setThemeName(dto.getThemeName());
         theme.setRole(dto.getRole());
         theme.setPalette(mapPaletteDtoToEntity(dto.getPalette()));
+        theme.setStatus(dto.getStatus());
         theme.setUpdatedAt(LocalDateTime.now());
         theme.setUpdatedBy(RoleEnum.ADMIN.name());
         repository.save(theme);
@@ -95,8 +101,58 @@ public class ColorThemeServiceImpl implements ColorThemeService {
     }
 
     @Override
-    public Page<ColorThemeResponseDTO> getAllThemes(Pageable pageable) {
-        Page<ColorTheme> colorThemes= repository.findAll(pageable);
+    public Page<ColorThemeResponseDTO> getAllThemes(
+            String search,
+            String sortBy,
+            String sortDir,
+            StatusEnum status,
+            RoleEnum role,
+            Pageable pageable
+    ) {
+
+        Sort sort = Sort.by(
+                "desc".equalsIgnoreCase(sortDir)
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC,
+                (sortBy != null && !sortBy.isBlank()) ? sortBy : "createdAt"
+        );
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasRole = role != null;
+        boolean hasStatus = status != null;
+
+        Page<ColorTheme> colorThemes;
+
+        if (hasSearch && hasRole && hasStatus) {
+            colorThemes = repository.searchByThemeNameAndRoleAndStatus(
+                    search, role, status, sortedPageable
+            );
+        } else if (hasRole && hasStatus) {
+            colorThemes = repository.findByRoleAndStatus(
+                    role, status, sortedPageable
+            );
+        } else if (hasRole) {
+            colorThemes = repository.findByRole(
+                    role, sortedPageable
+            );
+        } else if (hasStatus) {
+            colorThemes = repository.findByStatus(
+                    status, sortedPageable
+            );
+        } else if (hasSearch) {
+            colorThemes = repository.searchByThemeName(
+                    search, sortedPageable
+            );
+        } else {
+            colorThemes = repository.findAll(sortedPageable);
+        }
+
         return colorThemes.map(this::mapToResponse);
     }
 
@@ -155,6 +211,7 @@ public class ColorThemeServiceImpl implements ColorThemeService {
                 .role(theme.getRole())
                 .themeName(theme.getThemeName())
                 .palette(paletteDTO)
+                .status(theme.getStatus())
                 .updatedAt(theme.getUpdatedAt())
                 .updatedBy(theme.getUpdatedBy())
                 .build();

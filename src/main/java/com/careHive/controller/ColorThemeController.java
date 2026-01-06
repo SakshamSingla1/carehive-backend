@@ -3,6 +3,7 @@ package com.careHive.controller;
 import com.careHive.dtos.ColorTheme.ColorThemeRequestDTO;
 import com.careHive.dtos.ColorTheme.ColorThemeResponseDTO;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -78,13 +79,25 @@ public class ColorThemeController {
     }
 
     @GetMapping
-    public ResponseEntity<ResponseModel<Page<ColorThemeResponseDTO>>> getAllThemes(Pageable pageable) {
-
-        Page<ColorThemeResponseDTO> response = colorThemeService.getAllThemes(pageable);
-
+    public ResponseEntity<ResponseModel<Page<ColorThemeResponseDTO>>> getAllThemes(Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) StatusEnum status,
+            @RequestParam(required = false) RoleEnum role
+    ) {
+        Page<ColorThemeResponseDTO> response =
+                colorThemeService.getAllThemes(
+                        search,
+                        sortBy,
+                        sortDir,
+                        status,
+                        role,
+                        pageable
+                );
         return ApiResponse.respond(
                 response,
-                "All color themes fetched successfully",
+                "Color themes fetched successfully",
                 "Failed to fetch color themes"
         );
     }

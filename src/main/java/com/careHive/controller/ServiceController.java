@@ -2,8 +2,10 @@ package com.careHive.controller;
 
 import com.careHive.dtos.CaretakerServices.CSRequestDTO;
 import com.careHive.dtos.CaretakerServices.CSResponseDTO;
+import com.careHive.dtos.CaretakerServices.CaretakerInfoDTO;
 import com.careHive.dtos.Service.ServiceRequestDTO;
 import com.careHive.dtos.Service.ServiceResponseDTO;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -75,10 +77,11 @@ public class ServiceController {
             Pageable pageable,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false) String sortDir) throws CarehiveException {
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) StatusEnum status) throws CarehiveException {
 
         Page<ServiceResponseDTO> response =
-                serviceService.getAllServices(pageable, search, sortBy, sortDir);
+                serviceService.getAllServices(pageable, search, sortBy, sortDir, status);
 
         return ApiResponse.respond(response,
                 "Services fetched successfully",
@@ -95,5 +98,17 @@ public class ServiceController {
         return ApiResponse.respond(responseDTOS,
                 "Services assigned successfully",
                 "Failed to assign services");
+    }
+
+    @GetMapping("/{serviceId}/caretakers")
+    public ResponseEntity<ResponseModel<Page<CaretakerInfoDTO>>> getCaretakers(
+            @PathVariable String serviceId,
+            Pageable pageable
+    ) {
+        return ApiResponse.respond(
+                serviceService.getCaretakersByServiceId(serviceId, pageable),
+                "Caretakers fetched successfully",
+                "Failed to fetch caretakers"
+        );
     }
 }
