@@ -5,6 +5,7 @@ import com.careHive.dtos.NotificationTemplate.NTRequestDTO;
 import com.careHive.dtos.NotificationTemplate.NTResponseDTO;
 import com.careHive.enums.ExceptionCodeEnum;
 import com.careHive.enums.RoleEnum;
+import com.careHive.enums.StatusEnum;
 import com.careHive.exceptions.CarehiveException;
 import com.careHive.payload.ApiResponse;
 import com.careHive.payload.ResponseModel;
@@ -72,9 +73,10 @@ public class NTController {
             Pageable pageable,
             @RequestParam(required = false) String search,
             @RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
-            @RequestParam(required = false, defaultValue = "desc") String sortDir
-    ) {
-        Page<NTResponseDTO> responseDTO = ntService.getAllNotificationTemplates(pageable, search, sortBy, sortDir);
+            @RequestParam(required = false, defaultValue = "desc") String sortDir,
+            @RequestParam(required = false)StatusEnum status
+            ) {
+        Page<NTResponseDTO> responseDTO = ntService.getAllNotificationTemplates(pageable, search, status, sortBy, sortDir);
         return ApiResponse.respond(responseDTO, "Notification Templates fetched successfully", "Failed to fetch Notification Templates");
     }
 }

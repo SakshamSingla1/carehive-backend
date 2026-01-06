@@ -4,6 +4,7 @@ import com.careHive.entities.Configuration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -12,5 +13,15 @@ import java.util.Optional;
 public interface ConfigurationRepository extends MongoRepository<Configuration,String> {
     Optional<Configuration> findByContext(String context);
     boolean existsByContext(String context);
+
     Page<Configuration> findAll(Pageable pageable);
+    
+    @Query("""
+    {
+      $or: [
+        { "context": { $regex: ?0, $options: "i" } }
+      ]
+    }
+    """)
+    Page<Configuration> search(String search, Pageable pageable);
 }
